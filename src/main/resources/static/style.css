@@ -9,7 +9,7 @@
 :root {
     /* Colores */
     --primary-font-color: #E0E0E0;
-    --backgroung-color: #121212;
+    --background-color: #121212;
     --box-color: #FFF8DC;
     --button-color: #B71C1C;
 }
@@ -26,4 +26,6 @@ html {
     font-optical-sizing: auto;
     font-weight: 400;
     font-style: normal;
+    color: var(--primary-font-color);
+    background-color: var(--background-color);
 }

@@ -1,6 +1,7 @@
 package com.springboot.webflux.deathnote.model;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -13,9 +14,9 @@ public class Person {
     @Id
     private String id;
 
+    @NotEmpty
     private String name;
 
-    @NotBlank
     private boolean isAlive;
 
     @DateTimeFormat(pattern = "yyyy-MM-dd")

@@ -13,4 +13,6 @@ public interface PersonService {
     public Mono<Person> findById(String id);
 
     public Mono<Person> save(Person person);
+
+    public Mono<Void> delete(Person person);
 }

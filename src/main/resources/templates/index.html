@@ -3,17 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <title th:text="${title}">Death Note</title>
-    <link rel="stylesheet" href="./style.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Roboto+Condensed:ital@0;1&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" th:href="@{/style.css}" />
   </head>
   <body>
+    <div th:if="${param.error != null}" th:text="${param.error}"></div>
+    <div th:if="${param.success != null}" th:text="${param.success}"></div>
+
     <header>
-      <img src="" alt="" />
+      <img src="./assets/deathNoteWhite.png" alt="" />
       <div>
         <h1>Reglas del Death Note</h1>
         <p>
@@ -32,11 +35,12 @@
 
     <main>
       <section>
-        <form th:action="@{/form}" method="post" th:object="${person}">
+        <form th:action="@{/list}" method="post" th:object="${person}">
             <div>
                 <label for="name">Nombre</label>
                 <div>
                     <input type="text" th:field="*{name}">
+                    <small th:if="${#fields.hasErrors('name')}" th:error="*{name}"></small>
                 </div>
             </div>
             <div>
@@ -47,7 +51,7 @@
             </div>
             <div>
                 <div>
-                    <input type="submit" value="Enviar">
+                    <input type="submit" th:value="${button}">
                 </div>
             </div>
             <div>
@@ -60,6 +64,7 @@
                 <label for="deathDetails">Detalles de la muerte</label>
                 <div>
                     <input type="text" th:field="*{deathDetails}">
+                    <small th:if="${#fields.hasErrors('deathDetails')}" th:error="*{deathDetails}"></small>
                 </div>
             </div>
             <div>
@@ -79,6 +84,7 @@
               <th>name</th>
               <th>isAlive</th>
               <th>deathDate</th>
+              <th>Borrar</th>
             </tr>
           </thead>
           <tbody>
@@ -87,6 +93,7 @@
               <td th:text="${person.name}">nombre</td>
               <td th:text="${person.isAlive}">¿Está viva?</td>
               <td th:text="${person.deathDate}">Fecha de muerte</td>
+              <td><a th:href="@{/delete/{id}(id=${person.id})}">Borrar</a></td>
             </tr>
           </tbody>
         </table>

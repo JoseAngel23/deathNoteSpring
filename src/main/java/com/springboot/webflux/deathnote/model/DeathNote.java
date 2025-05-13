@@ -14,4 +14,27 @@ public class DeathNote {
     private String originalShinigamiOwner;
 
     private String owner;
+
+    public DeathNote() {}
+
+    public DeathNote(String originalShinigamiOwner, String owner) {
+        this.originalShinigamiOwner = originalShinigamiOwner;
+        this.owner = owner;
+    }
+
+    public String getOriginalShinigamiOwner() {
+        return originalShinigamiOwner;
+    }
+
+    public void setOriginalShinigamiOwner(String originalShinigamiOwner) {
+        this.originalShinigamiOwner = originalShinigamiOwner;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
 }

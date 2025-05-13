@@ -1,8 +1,7 @@
-package com.springboot.webflux.deathnote.repository;
+package com.springboot.webflux.deathnote.services;
 
-import com.springboot.webflux.deathnote.controller.PersonController;
 import com.springboot.webflux.deathnote.model.Person;
-import com.springboot.webflux.deathnote.services.PersonService;
+import com.springboot.webflux.deathnote.repository.PersonRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -27,5 +26,10 @@ public class PersonServiceImpl implements PersonService {
     @Override
     public Mono<Person> save(Person person) {
         return repository.save(person);
+    }
+
+    @Override
+    public Mono<Void> delete(Person person) {
+        return repository.delete(person);
     }
 }

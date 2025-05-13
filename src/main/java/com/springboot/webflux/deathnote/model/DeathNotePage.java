@@ -9,23 +9,31 @@ public class DeathNotePage {
     @Id
     private String id;
 
-    private String DeathNoteId;
+    private DeathNote deathNote;
 
     private String personId;
 
     public DeathNotePage() {}
 
-    public DeathNotePage(String deathNoteId, String personId) {
-        DeathNoteId = deathNoteId;
+    public DeathNotePage(DeathNote deathNote, String personId) {
+        this.deathNote = deathNote;
         this.personId = personId;
     }
 
-    public String getDeathNoteId() {
-        return DeathNoteId;
+    public String getId() {
+        return id;
     }
 
-    public void setDeathNoteId(String deathNoteId) {
-        DeathNoteId = deathNoteId;
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public DeathNote getDeathNote() {
+        return deathNote;
+    }
+
+    public void setDeathNote(DeathNote deathNote) {
+        this.deathNote = deathNote;
     }
 
     public String getPersonId() {
