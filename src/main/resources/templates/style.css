@@ -1,0 +1,29 @@
+/*
+1. Posicionamiento
+2. Modelo caja
+3. Tipografia
+4. Visuales
+5. Otros
+*/
+
+:root {
+    /* Colores */
+    --primary-font-color: #E0E0E0;
+    --backgroung-color: #121212;
+    --box-color: #FFF8DC;
+    --button-color: #B71C1C;
+}
+
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+html {
+    font-size: 62.5%;
+    font-family: "EB Garamond", serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+}

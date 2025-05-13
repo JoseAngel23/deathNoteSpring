@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title th:text="${title}">Death Note</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Roboto+Condensed:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header>
+      <img src="" alt="" />
+      <div>
+        <h1>Reglas del Death Note</h1>
+        <p>
+        Cómo Usar:<br>
+        1. El humano cuyo nombre sea escrito en esta aplicación, morirá.<br>
+        2. Esta aplicación no tendrá efecto a menos que el escritor suba una foto del rostro de la persona al escribir su nombre. De esta forma, personas que compartan el mismo nombre no serán afectadas.<br>
+        3. Si la causa de muerte es escrita dentro de los 40 segundos siguientes tras escribir el nombre de la persona, esta sucederá.<br>
+        4. Si la causa de muertes no es especificada, la persona morirá simplemente de un ataque al corazón.<br>
+        5. Tras escribir la causa de muerte, los detalles de la muerte deben ser escritos en los siguientes 6 minutos y 40 segundos.<br>
+        6. El propietario de la aplicación podrá reconocer la apariencia y la voz del propietario original, es decir, un Shinigami.<br>
+        7. El humano que use esta aplicación no podrá ir al Cielo ni al Infierno por el resto de la eternidad.<br>
+        8. Si escribes la causa de muerte como ataque al corazón, aún puedes especificar un tiempo de muerte dentro de los 40 segundos siguientes. Esto es válido incluso si no has especificado una causa directa.
+      </p>
+      </div>
+    </header>
+
+    <main>
+      <section>
+        <form th:action="@{/form}" method="post" th:object="${person}">
+            <div>
+                <label for="name">Nombre</label>
+                <div>
+                    <input type="text" th:field="*{name}">
+                </div>
+            </div>
+            <div>
+                <label for="photo">Foto del rostro</label>
+                <div>
+                    <input type="text" > <!-- th:field="*{photo}" -->
+                </div>
+            </div>
+            <div>
+                <div>
+                    <input type="submit" value="Enviar">
+                </div>
+            </div>
+            <div>
+                <label for="deathDate">Fecha de la muerte</label>
+                <div>
+                    <input type="date" th:field="*{deathDate}">
+                </div>
+            </div>
+            <div>
+                <label for="deathDetails">Detalles de la muerte</label>
+                <div>
+                    <input type="text" th:field="*{deathDetails}">
+                </div>
+            </div>
+            <div>
+                <div>
+                    <input type="submit" value="Enviar">
+                </div>
+            </div>
+        </form>
+      </section>
+      <section>
+        <h1 th:text="${title}"></h1>
+
+        <table>
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>name</th>
+              <th>isAlive</th>
+              <th>deathDate</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="person: ${people}">
+              <td th:text="${person.id}">id</td>
+              <td th:text="${person.name}">nombre</td>
+              <td th:text="${person.isAlive}">¿Está viva?</td>
+              <td th:text="${person.deathDate}">Fecha de muerte</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+    <footer></footer>
+  </body>
+</html>
