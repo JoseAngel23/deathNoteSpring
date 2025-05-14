@@ -12,93 +12,150 @@
     <link rel="stylesheet" th:href="@{/style.css}" />
   </head>
   <body>
-    <div th:if="${param.error != null}" th:text="${param.error}"></div>
-    <div th:if="${param.success != null}" th:text="${param.success}"></div>
+    <div
+      th:if="${param.error != null}"
+      th:text="${param.error}"
+      class="error"
+    ></div>
+    <div
+      th:if="${param.success != null}"
+      th:text="${param.success}"
+      class="success"
+    ></div>
 
     <header>
-      <img src="./assets/deathNoteWhite.png" alt="" />
+      <img src="./assets/deathNoteWhite.png" alt="Death Note" />
       <div>
         <h1>Reglas del Death Note</h1>
         <p>
-        Cómo Usar:<br>
-        1. El humano cuyo nombre sea escrito en esta aplicación, morirá.<br>
-        2. Esta aplicación no tendrá efecto a menos que el escritor suba una foto del rostro de la persona al escribir su nombre. De esta forma, personas que compartan el mismo nombre no serán afectadas.<br>
-        3. Si la causa de muerte es escrita dentro de los 40 segundos siguientes tras escribir el nombre de la persona, esta sucederá.<br>
-        4. Si la causa de muertes no es especificada, la persona morirá simplemente de un ataque al corazón.<br>
-        5. Tras escribir la causa de muerte, los detalles de la muerte deben ser escritos en los siguientes 6 minutos y 40 segundos.<br>
-        6. El propietario de la aplicación podrá reconocer la apariencia y la voz del propietario original, es decir, un Shinigami.<br>
-        7. El humano que use esta aplicación no podrá ir al Cielo ni al Infierno por el resto de la eternidad.<br>
-        8. Si escribes la causa de muerte como ataque al corazón, aún puedes especificar un tiempo de muerte dentro de los 40 segundos siguientes. Esto es válido incluso si no has especificado una causa directa.
-      </p>
+          Cómo Usar:<br />
+          1. El humano cuyo nombre sea escrito en esta aplicación, morirá.<br />
+          2. Esta aplicación no tendrá efecto a menos que el escritor suba una
+          foto del rostro de la persona al escribir su nombre.<br />
+          3. Si la causa de muerte es escrita dentro de los 40 segundos
+          siguientes tras escribir el nombre, esta sucederá.<br />
+          4. Si la causa de muerte no es especificada, la persona morirá de un
+          ataque al corazón.<br />
+          5. Tras escribir la causa de muerte, los detalles de la muerte deben
+          ser escritos en los siguientes 6 minutos y 40 segundos.<br />
+          6. El propietario de la aplicación podrá reconocer la apariencia y la
+          voz del propietario original, es decir, un Shinigami.<br />
+          7. El humano que use esta aplicación no podrá ir al Cielo ni al
+          Infierno por el resto de la eternidad.<br />
+          8. Si escribes la causa de muerte como ataque al corazón, aún puedes
+          especificar un tiempo de muerte dentro de los 40 segundos siguientes.
+        </p>
       </div>
     </header>
 
     <main>
       <section>
         <form th:action="@{/list}" method="post" th:object="${person}">
+          <div>
+            <label for="deathNoteId">Death Note</label>
             <div>
-                <label for="name">Nombre</label>
-                <div>
-                    <input type="text" th:field="*{name}">
-                    <small th:if="${#fields.hasErrors('name')}" th:error="*{name}"></small>
-                </div>
+              <select id="deathNoteId" name="deathNoteId" required>
+                <option value="">Selecciona una Death Note</option>
+                <option
+                  th:each="dn : ${deathNotes}"
+                  th:value="${dn.id}"
+                  th:text="${dn.id}"
+                ></option>
+              </select>
             </div>
+          </div>
+          <div>
+            <label for="name">Nombre</label>
             <div>
-                <label for="photo">Foto del rostro</label>
-                <div>
-                    <input type="text" > <!-- th:field="*{photo}" -->
-                </div>
+              <input type="text" th:field="*{name}" required />
+              <small
+                th:if="${#fields.hasErrors('name')}"
+                th:errors="*{name}"
+                class="error"
+              ></small>
             </div>
+          </div>
+          <div>
+            <label for="photo">Foto del rostro (URL)</label>
             <div>
-                <div>
-                    <input type="submit" th:value="${button}">
-                </div>
+              <input type="text" id="photo" name="photo" required />
+              <small
+                th:if="${#fields.hasErrors('photo')}"
+                th:errors="*{photo}"
+                class="error"
+              ></small>
             </div>
+          </div>
+          <div>
+            <label for="deathDate">Fecha de la muerte</label>
             <div>
-                <label for="deathDate">Fecha de la muerte</label>
-                <div>
-                    <input type="date" th:field="*{deathDate}">
-                </div>
+              <input type="date" th:field="*{deathDate}" />
             </div>
+          </div>
+          <div>
+            <label for="deathDetails">Detalles de la muerte</label>
             <div>
-                <label for="deathDetails">Detalles de la muerte</label>
-                <div>
-                    <input type="text" th:field="*{deathDetails}">
-                    <small th:if="${#fields.hasErrors('deathDetails')}" th:error="*{deathDetails}"></small>
-                </div>
+              <input type="text" th:field="*{deathDetails}" />
+              <small
+                th:if="${#fields.hasErrors('deathDetails')}"
+                th:errors="*{deathDetails}"
+                class="error"
+              ></small>
             </div>
-            <div>
-                <div>
-                    <input type="submit" value="Enviar">
-                </div>
-            </div>
+          </div>
+          <div>
+            <input type="submit" th:value="${button}" />
+          </div>
         </form>
       </section>
       <section>
         <h1 th:text="${title}"></h1>
-
         <table>
           <thead>
             <tr>
-              <th>id</th>
-              <th>name</th>
-              <th>isAlive</th>
-              <th>deathDate</th>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>¿Viva?</th>
+              <th>Fecha de muerte</th>
+              <th>Detalles</th>
+              <th>Foto</th>
               <th>Borrar</th>
             </tr>
           </thead>
           <tbody>
-            <tr th:each="person: ${people}">
-              <td th:text="${person.id}">id</td>
-              <td th:text="${person.name}">nombre</td>
-              <td th:text="${person.isAlive}">¿Está viva?</td>
-              <td th:text="${person.deathDate}">Fecha de muerte</td>
+            <tr th:each="person : ${people}">
+              <td th:text="${person.id}"></td>
+              <td th:text="${person.name}"></td>
+              <td th:text="${person.isAlive}"></td>
+              <td th:text="${person.deathDate}"></td>
+              <td th:text="${person.deathDetails}"></td>
+              <td>
+                <img
+                  th:src="${person.photo}"
+                  alt="Foto"
+                  width="50"
+                  th:if="${person.photo}"
+                />
+              </td>
               <td><a th:href="@{/delete/{id}(id=${person.id})}">Borrar</a></td>
             </tr>
           </tbody>
         </table>
       </section>
+      <section>
+        <h2>Death Notes</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Shinigami</th>
+              <th>Propietario</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
     </main>
-    <footer></footer>
   </body>
 </html>

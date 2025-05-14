@@ -24,16 +24,20 @@ public class Person {
 
     private String deathDetails;
 
-    // photo
+    private String facePhoto;
+
+    private String deathNoteId;
 
     public Person() {
     }
 
-    public Person(String name, Boolean isAlive, Date deathDate, String deathDetails) {
+    public Person(String name, boolean isAlive, Date deathDate, String deathDetails, String facePhoto, String deathNoteId) {
         this.name = name;
         this.isAlive = isAlive;
         this.deathDate = deathDate;
         this.deathDetails = deathDetails;
+        this.facePhoto = facePhoto;
+        this.deathNoteId = deathNoteId;
     }
 
     public String getId() {
@@ -74,5 +78,21 @@ public class Person {
 
     public void setDeathDetails(String deathDetails) {
         this.deathDetails = deathDetails;
+    }
+
+    public String getFacePhoto() {
+        return facePhoto;
+    }
+
+    public void setFacePhoto(String facePhoto) {
+        this.facePhoto = facePhoto;
+    }
+
+    public String getDeathNoteId() {
+        return deathNoteId;
+    }
+
+    public void setDeathNoteId(String deathNoteId) {
+        this.deathNoteId = deathNoteId;
     }
 }
