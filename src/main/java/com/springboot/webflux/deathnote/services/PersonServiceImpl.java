@@ -73,37 +73,53 @@ public class PersonServiceImpl implements PersonService {
         return this.save(person); // Llama al método save de esta clase, que luego llama al repositorio.
     }
 
-    @Override
-    public Mono<Person> specifyDeath(String personId, LocalDateTime explicitDeathDateTime, String details, String cause) {
+    // En PersonServiceImpl.java
+    public Mono<Person> specifyDeath(String personId, LocalDateTime explicitDeathDateTime, String deathDetails, String causeOfDeath /* o elimínalo si ya no lo usas */) {
         log.info("Servicio: Especificando muerte para ID: {}. Fecha/Hora: {}, Detalles: '{}', Causa: '{}'",
-                personId, explicitDeathDateTime, details, cause);
+                personId, explicitDeathDateTime, deathDetails, causeOfDeath);
 
         return personRepository.findById(personId)
                 .flatMap(person -> {
-                    // Opcional: Verificar si se puede modificar (ej. si no está ya 'DEAD' de forma definitiva)
-                    // if ("DEAD".equals(person.getStatus()) && (person.getCauseOfDeath() != null && !person.getCauseOfDeath().contains("Automático"))) {
-                    //     log.warn("Intentando especificar muerte para {} (ID: {}) que ya está muerta con causa final.", person.getName(), personId);
-                    //     return Mono.error(new IllegalStateException("La persona ya está muerta y los detalles no pueden ser alterados de esta manera."));
+                    log.info("Persona encontrada para especificar muerte: {} (ID: {}). Estado actual: {}, Viva: {}",
+                            person.getName(), person.getId(), person.getStatus(), person.isAlive());
+
+                    person.setDeathDetails(deathDetails);
+                    // if (causeOfDeath != null) { // Solo si todavía usas causeOfDeath
+                    //     person.setCauseOfDeath(causeOfDeath);
                     // }
 
-                    log.info("Persona encontrada para especificar muerte: {} (ID: {}). Estado actual: {}, Viva: {}",
-                            person.getName(), personId, person.getStatus(), person.isAlive());
+                    // Lógica crucial para determinar el estado 'alive' y la programación
+                    if (explicitDeathDateTime != null && explicitDeathDateTime.isBefore(LocalDateTime.now().plusSeconds(1))) { // Un pequeño margen por si es "justo ahora"
+                        // La fecha especificada ya pasó o es inminente
+                        person.setAlive(false);
+                        person.setDeathDate(explicitDeathDateTime); // Esta es la fecha/hora real de muerte
+                        person.setStatus("DEAD_DETAILS_SPECIFIED");
+                        person.setScheduledDeathTime(null); // Ya no hay muerte programada, ya ocurrió
+                        log.info("La fecha de muerte especificada ({}) ya pasó o es inminente. Marcando como muerta.", explicitDeathDateTime);
+                    } else if (explicitDeathDateTime != null) {
+                        // La fecha especificada es en el futuro
+                        person.setAlive(true); // Sigue viva
+                        person.setDeathDate(null); // La muerte real aún no ha ocurrido
+                        person.setScheduledDeathTime(explicitDeathDateTime); // El scheduler usará esta fecha/hora
+                        person.setStatus("DEATH_SCHEDULED_EXPLICITLY"); // Nuevo estado para que el scheduler lo maneje
+                        log.info("Muerte programada explícitamente para {} en {}.", person.getName(), explicitDeathDateTime);
+                    } else {
+                        // No se proporcionó explicitDeathDateTime, esto no debería pasar si la validación del controlador es correcta.
+                        // O podrías decidir qué hacer en este caso, ¿mantener la programación original?
+                        // Por ahora, asumimos que explicitDeathDateTime siempre vendrá si no hay errores de validación.
+                        log.warn("explicitDeathDateTime fue null en specifyDeath, lo cual no debería ocurrir si la validación del controlador está activa.");
+                        // Podrías retornar Mono.error() o manejarlo de otra forma.
+                    }
 
-                    person.setDeathDate(explicitDeathDateTime); // Esta es la nueva fecha/hora de muerte
-                    person.setDeathDetails(details);
-                    person.setCauseOfDeath(cause != null && !cause.trim().isEmpty() ? cause : "Causa especificada por el usuario");
-                    person.setAlive(false); // Al especificar la muerte, la persona ya no está viva (o lo estará hasta esa fecha)
-                    person.setStatus("DEAD_DETAILS_SPECIFIED"); // Un nuevo estado para indicar que la muerte fue especificada
-                    person.setScheduledDeathTime(null); // Anula cualquier muerte programada por ataque al corazón
+                    log.info("Actualizando persona {} (ID: {}) a estado {}, deathDate: {}, scheduledDeathTime: {}, alive: {}",
+                            person.getName(), person.getId(), person.getStatus(), person.getDeathDate(), person.getScheduledDeathTime(), person.isAlive());
 
-                    log.info("Actualizando persona {} (ID: {}) a estado DEAD_DETAILS_SPECIFIED, deathDate: {}",
-                            person.getName(), person.getId(), person.getDeathDate());
+                    // Loguear todos los campos antes de guardar para máxima claridad
+                    log.info("Guardando persona en BD: ID: {}, Nombre: {}, Foto: {}, Viva: {}, Estado: {}, Fecha Muerte Real: {}, Fecha Muerte Prog.: {}, Causa Muerte: {}, Detalles Muerte: {}",
+                            person.getId(), person.getName(), person.getFacePhoto(), person.isAlive(), person.getStatus(), person.getDeathDate(), person.getScheduledDeathTime(), person.getCauseOfDeath(), person.getDeathDetails());
 
-                    return this.save(person); // Reutiliza tu método save que ya tiene logging
+                    return personRepository.save(person);
                 })
-                .switchIfEmpty(Mono.defer(() -> {
-                    log.warn("Servicio: Persona no encontrada con ID: {} para especificar detalles de muerte.", personId);
-                    return Mono.error(new RuntimeException("Persona no encontrada con ID: " + personId + " para especificar detalles de muerte."));
-                }));
+                .switchIfEmpty(Mono.error(new RuntimeException("Persona no encontrada con ID: " + personId + " al intentar especificar muerte.")));
     }
 }

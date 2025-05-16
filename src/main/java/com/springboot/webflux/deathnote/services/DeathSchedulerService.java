@@ -18,48 +18,49 @@ public class DeathSchedulerService {
     @Autowired
     private PersonRepository personRepository;
 
-    // Ejecuta cada 5 segundos (PT5S). Puedes ajustarlo para pruebas.
-    @Scheduled(fixedDelayString = "${deathnote.scheduler.fixedDelay:PT5S}") // Puedes hacerlo configurable
-    public void processPendingHeartAttacks() {
+    // En DeathSchedulerService.java
+    @Scheduled(fixedDelayString = "${deathnote.scheduler.fixedDelay:PT5S}")
+    public void processPendingDeaths() { // Renombrado para ser más general
         LocalDateTime currentTime = LocalDateTime.now();
-        String targetStatus = "PENDING_HEART_ATTACK";
-        boolean targetIsAlive = true;
+        String logPrefixScheduler = "SCHEDULER: ";
 
-        log.info("SCHEDULER: Ciclo iniciado. Hora actual: {}. Buscando: status='{}', isAlive={}, scheduledDeathTime < {}",
-                currentTime, targetStatus, targetIsAlive, currentTime);
-
-        personRepository.findAllByStatusAndScheduledDeathTimeBeforeAndAlive(targetStatus, currentTime, targetIsAlive)
-                .collectList() // Colecta para loguear el tamaño de la lista encontrada
-                .flatMapMany(list -> {
-                    if (list.isEmpty()) {
-                        log.info("SCHEDULER: No se encontraron personas para procesar en este ciclo.");
-                    } else {
-                        log.info("SCHEDULER: {} personas encontradas para procesar.", list.size());
-                        list.forEach(p -> log.info("SCHEDULER: -> Encontrada: ID={}, Nombre={}, EstadoActual={}, Viva={}, MuerteProg={}",
-                                p.getId(), p.getName(), p.getStatus(), p.isAlive(), p.getScheduledDeathTime()));
-                    }
-                    return Flux.fromIterable(list); // Devuelve el Flux para seguir procesando
-                })
+        // 1. Procesar muertes automáticas por ataque al corazón (PENDING_HEART_ATTACK)
+        personRepository.findAllByStatusAndScheduledDeathTimeBeforeAndAlive("PENDING_HEART_ATTACK", currentTime, true)
                 .flatMap(person -> {
-                    log.info("SCHEDULER: Procesando a: {} (ID: {}). Hora de muerte programada original: {}",
-                            person.getName(), person.getId(), person.getScheduledDeathTime());
-
+                    log.info("{}Procesando (Ataque Corazón) a: {} (ID: {}). Muerte prog.: {}", logPrefixScheduler, person.getName(), person.getId(), person.getScheduledDeathTime());
                     person.setAlive(false);
-                    person.setCauseOfDeath("Ataque al Corazón (Automático por Scheduler)");
-                    person.setDeathDate(person.getScheduledDeathTime()); // Asigna la hora programada como la hora de muerte real
-                    person.setStatus("DEAD");
-
-                    log.info("SCHEDULER: Intentando actualizar a {} (ID: {}) como DEAD. Fecha de muerte establecida: {}",
-                            person.getName(), person.getId(), person.getDeathDate());
-
+                    person.setCauseOfDeath("Ataque al Corazón (Automático por Scheduler)"); // Si aún usas causeOfDeath
+                    person.setDeathDate(person.getScheduledDeathTime()); // Hora real de muerte
+                    person.setStatus("DEAD_BY_SCHEDULER"); // O simplemente "DEAD"
+                    person.setScheduledDeathTime(null); // Limpiar, ya no está programada
+                    log.info("{}Intentando actualizar a {} como DEAD_BY_SCHEDULER. Fecha muerte: {}", logPrefixScheduler, person.getName(), person.getDeathDate());
                     return personRepository.save(person)
-                            .doOnSuccess(savedPerson -> log.info("SCHEDULER: Persona {} (ID: {}) GUARDADA exitosamente como DEAD.", savedPerson.getName(), savedPerson.getId()))
-                            .doOnError(saveError -> log.error("SCHEDULER: ERROR al guardar a {} (ID: {}) como DEAD: {}", person.getName(), person.getId(), saveError.getMessage(), saveError));
+                            .doOnSuccess(savedPerson -> log.info("{}{} (ID: {}) GUARDADA como DEAD_BY_SCHEDULER.", logPrefixScheduler, savedPerson.getName(), savedPerson.getId()))
+                            .doOnError(saveError -> log.error("{}ERROR al guardar a {} como DEAD_BY_SCHEDULER: {}", logPrefixScheduler, person.getName(), saveError.getMessage()));
                 })
                 .subscribe(
-                        updatedPerson -> log.info("SCHEDULER: Ciclo de procesamiento para {} (ID: {}) FINALIZADO con éxito.", updatedPerson.getName(), updatedPerson.getId()),
-                        error -> log.error("SCHEDULER: ERROR general en el flujo del scheduler al procesar muertes.", error),
-                        () -> log.debug("SCHEDULER: Fin del ciclo de procesamiento de muertes (puede que no se hayan encontrado personas).")
+                        updatedPerson -> log.debug("{}Ciclo (Ataque Corazón) para {} finalizado.", logPrefixScheduler, updatedPerson.getName()),
+                        error -> log.error("{}ERROR general en scheduler (Ataque Corazón).", logPrefixScheduler, error)
                 );
+
+        // 2. Procesar muertes explícitamente programadas (DEATH_SCHEDULED_EXPLICITLY)
+        personRepository.findAllByStatusAndScheduledDeathTimeBeforeAndAlive("DEATH_SCHEDULED_EXPLICITLY", currentTime, true)
+                .flatMap(person -> {
+                    log.info("{}Procesando (Muerte Explícita) a: {} (ID: {}). Muerte especificada: {}", logPrefixScheduler, person.getName(), person.getId(), person.getScheduledDeathTime());
+                    person.setAlive(false);
+                    // person.setCauseOfDeath(person.getCauseOfDeath()); // Ya debería estar seteada desde specifyDeath
+                    person.setDeathDate(person.getScheduledDeathTime()); // Hora real de muerte
+                    person.setStatus("DEAD_DETAILS_SPECIFIED"); // O simplemente "DEAD"
+                    person.setScheduledDeathTime(null); // Limpiar, ya no está programada
+                    log.info("{}Intentando actualizar a {} como DEAD_DETAILS_SPECIFIED. Fecha muerte: {}", logPrefixScheduler, person.getName(), person.getDeathDate());
+                    return personRepository.save(person)
+                            .doOnSuccess(savedPerson -> log.info("{}{} (ID: {}) GUARDADA como DEAD_DETAILS_SPECIFIED.", logPrefixScheduler, savedPerson.getName(), savedPerson.getId()))
+                            .doOnError(saveError -> log.error("{}ERROR al guardar a {} como DEAD_DETAILS_SPECIFIED: {}", logPrefixScheduler, person.getName(), saveError.getMessage()));
+                })
+                .subscribe(
+                        updatedPerson -> log.debug("{}Ciclo (Muerte Explícita) para {} finalizado.", logPrefixScheduler, updatedPerson.getName()),
+                        error -> log.error("{}ERROR general en scheduler (Muerte Explícita).", logPrefixScheduler, error)
+                );
+        // Podrías añadir un log general al final del método processPendingDeaths si no se encontró nada para procesar en ninguna categoría.
     }
 }

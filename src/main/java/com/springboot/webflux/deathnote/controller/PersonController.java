@@ -365,10 +365,7 @@ public class PersonController { // Considera renombrar a AppController o dividir
     public Mono<String> showDeathDetailsForm(@PathVariable String id, Model model, WebSession session) {
         String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
         if (activeDeathNoteId == null) {
-            // Si quieres, puedes permitir ver/editar detalles sin una DN activa,
-            // o redirigir como lo haces en otros lugares.
             log.warn("Intento de acceder a detalles de muerte sin DN activa. ID Persona: {}", id);
-            // return Mono.just("redirect:/?error=" + encodeURL("Por favor, selecciona una Death Note primero."));
         }
 
         log.info("Mostrando formulario de detalles de muerte para persona con ID: {}", id);
@@ -377,7 +374,7 @@ public class PersonController { // Considera renombrar a AppController o dividir
 
                     model.addAttribute("person", person);
                     model.addAttribute("pageTitle", "Especificar Muerte para " + person.getName());
-                    model.addAttribute("activeDeathNoteId", activeDeathNoteId); // Puede ser útil en el form
+                    model.addAttribute("activeDeathNoteId", activeDeathNoteId);
                     return Mono.just("details");
                 })
                 .switchIfEmpty(Mono.defer(() -> {
