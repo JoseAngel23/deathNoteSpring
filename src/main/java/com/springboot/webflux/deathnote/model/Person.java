@@ -1,12 +1,11 @@
 package com.springboot.webflux.deathnote.model;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.util.Date;
+import java.time.LocalDateTime; // ÚNICA importación de fecha/hora necesaria aquí
 
 @Document(collection="people")
 public class Person {
@@ -17,82 +16,76 @@ public class Person {
     @NotEmpty
     private String name;
 
-    private boolean isAlive;
-
-    @DateTimeFormat(pattern = "yyyy-MM-dd")
-    private Date deathDate;
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) // Para binding desde String a LocalDateTime
+    private LocalDateTime deathDate;
 
     private String deathDetails;
-
     private String facePhoto;
-
     private String deathNoteId;
 
+    // --- CAMPOS ACTUALIZADOS A LocalDateTime ---
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    private LocalDateTime entryTime;
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    private LocalDateTime scheduledDeathTime;
+    // --- FIN DE ACTUALIZACIÓN ---
+
+    private String status;
+    private String causeOfDeath;
+    private boolean isAlive = true;
+
     public Person() {
+        this.isAlive = true; // Por defecto viva
     }
 
-    public Person(String name, boolean isAlive, Date deathDate, String deathDetails, String facePhoto, String deathNoteId) {
+    // Constructor actualizado para usar LocalDateTime en todos los campos de fecha
+    public Person(String name, LocalDateTime deathDate, String deathDetails, String facePhoto, String deathNoteId) {
         this.name = name;
-        this.isAlive = isAlive;
         this.deathDate = deathDate;
         this.deathDetails = deathDetails;
         this.facePhoto = facePhoto;
         this.deathNoteId = deathNoteId;
+        this.isAlive = true; // Al crear, está viva
+        this.entryTime = LocalDateTime.now(); // Podrías inicializarlo aquí o en el servicio
     }
 
-    public String getId() {
-        return id;
-    }
+    // Getters y Setters
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public String getName() {
-        return name;
-    }
+    // Convención estándar para booleanos
+    public boolean isAlive() { return isAlive; }
+    public void setIsAlive(boolean alive) { isAlive = alive; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    public LocalDateTime getDeathDate() { return deathDate; }
+    public void setDeathDate(LocalDateTime deathDate) { this.deathDate = deathDate; }
 
-    public boolean getIsAlive() {
-        return isAlive;
-    }
+    public String getDeathDetails() { return deathDetails; }
+    public void setDeathDetails(String deathDetails) { this.deathDetails = deathDetails; }
 
-    public void setIsAlive(boolean alive) {
-        isAlive = alive;
-    }
+    public String getFacePhoto() { return facePhoto; }
+    public void setFacePhoto(String facePhoto) { this.facePhoto = facePhoto; }
 
-    public Date getDeathDate() {
-        return deathDate;
-    }
+    public String getDeathNoteId() { return deathNoteId; }
+    public void setDeathNoteId(String deathNoteId) { this.deathNoteId = deathNoteId; }
 
-    public void setDeathDate(Date deathDate) {
-        this.deathDate = deathDate;
-    }
+    public LocalDateTime getEntryTime() { return entryTime; }
+    public void setEntryTime(LocalDateTime entryTime) { this.entryTime = entryTime; }
 
-    public String getDeathDetails() {
-        return deathDetails;
-    }
+    public LocalDateTime getScheduledDeathTime() { return scheduledDeathTime; }
+    public void setScheduledDeathTime(LocalDateTime scheduledDeathTime) { this.scheduledDeathTime = scheduledDeathTime; }
 
-    public void setDeathDetails(String deathDetails) {
-        this.deathDetails = deathDetails;
-    }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-    public String getFacePhoto() {
-        return facePhoto;
-    }
+    public String getCauseOfDeath() { return causeOfDeath; }
+    public void setCauseOfDeath(String causeOfDeath) { this.causeOfDeath = causeOfDeath; }
 
-    public void setFacePhoto(String facePhoto) {
-        this.facePhoto = facePhoto;
-    }
-
-    public String getDeathNoteId() {
-        return deathNoteId;
-    }
-
-    public void setDeathNoteId(String deathNoteId) {
-        this.deathNoteId = deathNoteId;
-    }
+    // El método `setAlive` es redundante si tienes `setIsAlive`. Elimina uno.
+    // public void setAlive(boolean alive) { isAlive = alive; }
+    // El método `IsAlive()` con 'I' mayúscula no sigue la convención. Elimínalo.
+    // public boolean IsAlive() { return isAlive; }
 }

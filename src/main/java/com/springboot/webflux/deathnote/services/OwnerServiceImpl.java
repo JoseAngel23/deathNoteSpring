@@ -35,4 +35,9 @@ public class OwnerServiceImpl implements OwnerService{
     public Mono<Void> delete(Owner owner) {
         return repository.delete(owner);
     }
+
+    @Override
+    public Mono<Owner> findByName(String name) {
+        return repository.findByName(name);
+    }
 }

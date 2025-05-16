@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Service
@@ -29,29 +30,36 @@ public class DeathNoteServiceImpl implements DeathNoteService {
     }
 
     @Override
-    public Mono<DeathNote> writePersonInDeathNote(String deathNoteId, String personId, String deathDetails, Date deathDate, String photo) {
-        return Mono.zip(deathNoteRepository.findById(deathNoteId), personService.findById(personId), ownerService.find())
+    public Mono<DeathNote> writePersonInDeathNote(String deathNoteId, String personId, String deathDetails,
+                                                  LocalDateTime deathDate, String photo) {
+        return Mono.zip(
+                        deathNoteRepository.findById(deathNoteId),
+                        personService.findById(personId)
+                )
                 .flatMap(tuple -> {
                     DeathNote deathNote = tuple.getT1();
                     Person person = tuple.getT2();
-                    Owner owner = tuple.getT3();
+                    // Owner owner = tuple.getT3(); // Si lo necesitas, descomenta
 
-                    if (!person.getIsAlive()) {
+                    if (!person.isAlive()) { // Usar isAlive()
                         return Mono.error(new IllegalStateException("La persona ya está muerta"));
                     }
+                    // Asumo que getOwnerId() en DeathNote es el ID del dueño actual de la DeathNote
                     if (deathNote.getOwnerId() != null && deathNote.getOwnerId().equals(personId)) {
                         return Mono.error(new IllegalStateException("El propietario no puede escribir su propio nombre"));
                     }
                     if (photo == null || photo.isEmpty()) {
-                        return Mono.error(new IllegalStateException("Se requiere una foto del rostro"));
+                        // Considera si la foto es realmente obligatoria para la lógica de muerte
+                        // o solo para la visualización. La regla 2 dice "suba una foto".
+                        return Mono.error(new IllegalStateException("Se requiere una foto del rostro para que la Death Note tenga efecto"));
                     }
 
                     person.setDeathNoteId(deathNoteId);
-                    person.setDeathDetails(deathDetails != null ? deathDetails : "Ataque al corazón");
-                    person.setDeathDate(deathDate != null ? deathDate : new Date());
-                    person.setIsAlive(false);
-                    person.setFacePhoto(photo);
+                    person.setDeathDetails(deathDetails != null ? deathDetails : "Ataque al Corazón (por defecto si no hay detalles y pasa el tiempo)");
 
+                    person.setDeathDate(deathDate != null ? deathDate : LocalDateTime.now().plusSeconds(40)); // O la lógica que determine el saveInitialEntry
+
+                    person.setFacePhoto(photo);
                     deathNote.addPersonId(personId);
 
                     return personService.save(person)
@@ -61,10 +69,15 @@ public class DeathNoteServiceImpl implements DeathNoteService {
 
     @Override
     public Mono<DeathNote> rejectOwnership(String deathNoteId) {
-        return Mono.zip(deathNoteRepository.findById(deathNoteId), ownerService.find())
+        return deathNoteRepository.findById(deathNoteId)
+                .zipWith(ownerService.find())
                 .flatMap(tuple -> {
                     DeathNote deathNote = tuple.getT1();
                     Owner owner = tuple.getT2();
+
+                    if (deathNote.getOwnerId() == null || !deathNote.getOwnerId().equals(owner.getId())) {
+                        return Mono.error(new IllegalStateException("El owner recuperado no coincide con el de la Death Note o la DN no tiene owner."));
+                    }
 
                     deathNote.setOwnerId(null);
                     owner.setDeathNoteId(null);
@@ -76,12 +89,13 @@ public class DeathNoteServiceImpl implements DeathNoteService {
 
     @Override
     public Mono<DeathNote> initializeDeathNote(String shinigamiId, String ownerId) {
+        // ... (tu lógica)
         return deathNoteRepository.findAll().count()
                 .flatMap(count -> {
-                    if (count > 0) {
-                        return Mono.error(new IllegalStateException("Ya existe una Death Note. No se pueden crear más."));
+                    if (count > 0 && ownerId != null) {
+                        return Mono.error(new IllegalStateException("Ya existe una Death Note con propietario. No se pueden crear más con propietario inicial."));
                     }
-                    DeathNote deathNote = new DeathNote(shinigamiId, ownerId);
+                    DeathNote deathNote = new DeathNote(shinigamiId, ownerId); // Usa tu constructor
                     return deathNoteRepository.save(deathNote);
                 });
     }
@@ -89,5 +103,10 @@ public class DeathNoteServiceImpl implements DeathNoteService {
     @Override
     public Flux<DeathNote> findAll() {
         return deathNoteRepository.findAll();
+    }
+
+    @Override
+    public Mono<DeathNote> save(DeathNote deathNote) {
+        return deathNoteRepository.save(deathNote);
     }
 }

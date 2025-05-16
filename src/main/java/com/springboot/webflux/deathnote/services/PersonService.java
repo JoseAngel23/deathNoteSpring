@@ -15,4 +15,6 @@ public interface PersonService {
     public Mono<Person> save(Person person);
 
     public Mono<Void> delete(Person person);
+
+    public Mono<Person> saveInitialEntry(Person person);
 }

@@ -11,4 +11,6 @@ public interface ShinigamiService {
     public Mono<Shinigami> save(Shinigami shinigami);
 
     public Mono<Void> delete(Shinigami shinigami);
+
+    Mono<Shinigami> findByName(String name);
 }

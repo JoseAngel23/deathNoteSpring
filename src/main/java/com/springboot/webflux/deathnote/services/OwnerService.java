@@ -13,4 +13,6 @@ public interface OwnerService {
     public Mono<Owner> save(Owner owner);
 
     public Mono<Void> delete(Owner owner);
+
+    Mono<Owner> findByName(String name);
 }

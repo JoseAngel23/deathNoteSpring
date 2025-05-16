@@ -29,3 +29,188 @@ html {
     color: var(--primary-font-color);
     background-color: var(--background-color);
 }
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0; /* Asegúrate que no haya márgenes por defecto en body */
+}
+
+.site-header {
+    display: flex; /* Activa Flexbox para alinear elementos horizontalmente */
+    justify-content: space-between; /* Empuja el logo a la izquierda y la nav a la derecha */
+    align-items: center;
+    padding: 1rem 2rem; 
+}
+
+.logo-container img {
+    height: 6rem; /* Reduce la altura del logo. Ajusta este valor como necesites. */
+    width: auto;  /* Mantiene la proporción original de la imagen */
+}
+
+/* Estilos de la Navegación Principal */
+.main-nav ul {
+    list-style-type: none; /* Elimina los puntos de la lista */
+    display: flex; /* Coloca los elementos de la lista (li) en horizontal */
+    padding: 0; /* Elimina el padding por defecto del ul */
+    margin: 0; /* Elimina el margen por defecto del ul */
+    gap: 2.5rem; /* Espacio entre los elementos de navegación (ej: 25px) */
+}
+
+.main-nav li {
+    /* Ya no se necesita margin aquí si usas 'gap' en el 'ul' */
+}
+
+.main-nav a {
+    color: var(--primary-font-color); 
+    text-decoration: none;
+    font-size: 1.5rem;
+}
+
+.main-nav a:hover { 
+    color: var(--box-color);
+}
+
+/* ... (El resto de tus estilos para .main-content, .selection-section, form, etc.) ... */
+
+/* ... (tus variables :root, reset *, estilos html y header existentes) ... */
+
+/* Estilos del Contenido Principal y Sección de Selección */
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Centra verticalmente .selection-section */
+    align-items: center;     /* Centra horizontalmente .selection-section */
+    padding: 2rem; /* Padding general para el área principal */
+}
+
+.selection-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    /* margin-top: 5rem; */ /* Ya no es tan necesario si .main-content centra verticalmente */
+    /* padding: 2rem; */  /* El padding ahora está en .main-content, o puedes tenerlo aquí también */
+    width: 100%; /* Ocupa el ancho que le permita .main-content */
+    max-width: 600px; /* Limita el ancho máximo de esta sección */
+}
+
+.selection-section h1 {
+    margin-bottom: 2.5rem; /* Aumentamos un poco el espacio */
+    font-size: 3rem;     /* Un poco más grande el título */
+}
+
+#deathNoteSelectionForm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem; /* Un poco más de espacio entre select y botón */
+    width: 100%; /* El formulario ocupa el ancho de .selection-section */
+}
+
+/* Hacemos que el select y el botón tengan el mismo ancho controlado */
+/* Ancho para el select y su contenedor si existe */
+.form-group, 
+#deathNoteSelect {
+    width: 80%;
+    margin-bottom: 2rem;
+    margin-top: 2rem;
+}
+
+#deathNoteSelect {
+    padding: 1rem 1.2rem; /* Un poco más de padding vertical */
+    border: 1px solid #444;
+    background-color: #2E2E2E; /* Un gris un poco más claro que #333 para diferenciar */
+    color: var(--primary-font-color);
+    font-family: "Roboto Condensed", sans-serif;
+    font-size: 1.6rem;
+    border-radius: 4px;
+}
+
+.continue-button {
+    padding: 1rem 2rem; /* Un poco más de padding vertical */
+    background-color: var(--button-color);
+    color: #FFFFFF;
+    border: none;
+    font-family: "Roboto Condensed", sans-serif;
+    font-size: 1.7rem; /* Un poco más grande */
+    cursor: pointer;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em; /* Un poco más de espaciado */
+}
+
+.continue-button:hover {
+    background-color: #9A1E1E;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+/* ... (Todo tu CSS existente: :root, *, html, .site-header, etc.) ... */
+
+/* Estilos específicos para la página de Reglas */
+.main-content.rules-page {
+    padding: 2rem 3rem; /* Más padding horizontal */
+    max-width: 1200px; /* Un ancho máximo para el contenido de las reglas */
+    margin: 0 auto;    /* Centra .main-content si tiene max-width */
+}
+
+.rules-page h1 {
+    text-align: center;
+    font-size: 3.2rem; /* Un poco más grande */
+    margin-bottom: 3rem;
+    color: var(--primary-font-color); /* Asegurar color si es necesario */
+}
+
+.rules-container {
+    display: grid; /* Usamos Grid para las columnas */
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Columnas responsivas */
+                                                              /* Crea columnas de al menos 300px, 
+                                                                 y se ajustan para llenar el espacio */
+    gap: 3rem; /* Espacio entre las secciones de reglas */
+    margin-bottom: 3rem; /* Espacio antes del botón continuar */
+}
+
+.rules-section h2 {
+    font-size: 2.2rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #444; /* Un separador sutil */
+    padding-bottom: 0.5rem;
+    color: var(--primary-font-color); /* Asegurar color */
+}
+
+.rules-section ol {
+    list-style-position: inside; /* Para que los números estén dentro del flujo del texto */
+    padding-left: 0; /* Quitamos el padding por defecto si list-style-position es inside */
+}
+
+.rules-section li {
+    font-size: 1.5rem; /* Tamaño base de las reglas */
+    line-height: 1.7;  /* Mejora la legibilidad */
+    margin-bottom: 1rem; /* Espacio entre cada regla */
+    text-align: left; /* Alineación izquierda para el texto de las reglas */
+}
+
+.rules-continue-button-container {
+    text-align: center; /* Centra el botón dentro de este div */
+    margin-top: 2rem;
+    margin-bottom: 3rem;
+}
+
+/* El botón .continue-button ya debería tener estilos de la página anterior.
+   Si necesitas un ancho específico aquí, puedes ajustarlo: */
+.rules-page .continue-button {
+    /* width: fit-content; */ /* Hereda el estilo anterior o ajusta */
+    /* padding: 1rem 3rem; */
+}
