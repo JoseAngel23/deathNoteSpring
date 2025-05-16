@@ -4,6 +4,8 @@ import com.springboot.webflux.deathnote.model.DeathNote;
 import com.springboot.webflux.deathnote.model.Owner;
 import com.springboot.webflux.deathnote.model.Person;
 import com.springboot.webflux.deathnote.repository.DeathNoteRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -24,47 +26,71 @@ public class DeathNoteServiceImpl implements DeathNoteService {
     @Autowired
     private OwnerService ownerService;
 
+    private static final Logger log = LoggerFactory.getLogger(PersonServiceImpl.class);
+
     @Override
     public Mono<Void> delete(DeathNote deathNote) {
         return deathNoteRepository.delete(deathNote);
     }
 
     @Override
-    public Mono<DeathNote> writePersonInDeathNote(String deathNoteId, String personId, String deathDetails,
-                                                  LocalDateTime deathDate, String photo) {
+    public Mono<DeathNote> writePersonInDeathNote(String deathNoteId, String personId, String deathDetailsFromPerson,
+                                                  LocalDateTime scheduledDeathTimeFromPerson, String photoNameFromPerson) {
         return Mono.zip(
                         deathNoteRepository.findById(deathNoteId),
-                        personService.findById(personId)
+                        personService.findById(personId) // Este 'person' ya fue procesado por saveInitialEntry
                 )
                 .flatMap(tuple -> {
                     DeathNote deathNote = tuple.getT1();
-                    Person person = tuple.getT2();
-                    // Owner owner = tuple.getT3(); // Si lo necesitas, descomenta
+                    Person person = tuple.getT2(); // person ya tiene su estado y foto (si la hubo)
 
-                    if (!person.isAlive()) { // Usar isAlive()
-                        return Mono.error(new IllegalStateException("La persona ya está muerta"));
-                    }
-                    // Asumo que getOwnerId() en DeathNote es el ID del dueño actual de la DeathNote
+                    // Regla: Propietario no puede escribir su propio nombre
                     if (deathNote.getOwnerId() != null && deathNote.getOwnerId().equals(personId)) {
                         return Mono.error(new IllegalStateException("El propietario no puede escribir su propio nombre"));
                     }
-                    if (photo == null || photo.isEmpty()) {
-                        // Considera si la foto es realmente obligatoria para la lógica de muerte
-                        // o solo para la visualización. La regla 2 dice "suba una foto".
-                        return Mono.error(new IllegalStateException("Se requiere una foto del rostro para que la Death Note tenga efecto"));
+
+                    // La validación estricta de la foto se elimina de aquí.
+                    // La lógica de si la persona muere o no ya fue manejada en PersonServiceImpl.saveInitialEntry.
+                    // Este método ahora se enfoca en actualizar la DeathNote y, si acaso,
+                    // detalles de muerte explícitos si vinieran de un formulario más avanzado.
+
+                    log.info("Escribiendo a {} (ID: {}) en DeathNote {} (ID: {}). Detalles provistos: '{}', Muerte programada: '{}', Foto: '{}'",
+                            person.getName(), person.getId(), deathNote.getId(), deathNote.getId(), deathDetailsFromPerson, scheduledDeathTimeFromPerson, photoNameFromPerson);
+
+
+                    // Aquí podrías manejar la actualización de 'person.setDeathDetails' o 'person.setDeathDate'
+                    // si el formulario de anotación permitiera especificar causa y momento exacto de la muerte,
+                    // lo cual sobrescribiría la muerte por defecto de 40s.
+                    // Por ahora, asumimos que 'deathDetailsFromPerson' y 'scheduledDeathTimeFromPerson'
+                    // son los que 'saveInitialEntry' estableció.
+
+                    // Si se proporcionaron detalles explícitos de muerte que deben aplicarse inmediatamente:
+                    boolean personModifiedInWrite = false;
+                    if (deathDetailsFromPerson != null && !deathDetailsFromPerson.equals(person.getDeathDetails())) {
+                        // Podrías querer actualizar person.setDeathDetails si el formulario permite especificarlo
+                        // y es diferente de lo que saveInitialEntry pudo haber puesto.
+                        // person.setDeathDetails(deathDetailsFromPerson);
+                        // personModifiedInWrite = true;
                     }
+                    // Similar para una deathDate explícita que no sea la programada.
 
-                    person.setDeathNoteId(deathNoteId);
-                    person.setDeathDetails(deathDetails != null ? deathDetails : "Ataque al Corazón (por defecto si no hay detalles y pasa el tiempo)");
 
-                    person.setDeathDate(deathDate != null ? deathDate : LocalDateTime.now().plusSeconds(40)); // O la lógica que determine el saveInitialEntry
-
-                    person.setFacePhoto(photo);
+                    // Añadir el ID de la persona a la lista de la Death Note
                     deathNote.addPersonId(personId);
 
-                    return personService.save(person)
-                            .then(deathNoteRepository.save(deathNote));
-                });
+                    // Si 'person' se modificó en este método (ej. con detalles explícitos de muerte), guardarlo.
+                    // De lo contrario, 'person' ya fue guardado por saveInitialEntry.
+                    Mono<Person> savePersonIfNeededMono = Mono.just(person);
+                    if(personModifiedInWrite) {
+                        // savePersonIfNeededMono = personService.save(person);
+                    }
+
+                    // Solo se guarda la DeathNote ya que la persona ya se guardó en saveInitialEntry
+                    // a menos que se modifique explícitamente aquí.
+                    return deathNoteRepository.save(deathNote).map(dn -> person); // Devolvemos la persona para mantener el flujo del controlador
+                })
+                .switchIfEmpty(Mono.error(new IllegalStateException("No se encontró DeathNote o Persona para escribir.")))
+                .flatMap(savedPerson -> deathNoteRepository.findById(deathNoteId)); // Aseguramos devolver la DeathNote actualizada
     }
 
     @Override

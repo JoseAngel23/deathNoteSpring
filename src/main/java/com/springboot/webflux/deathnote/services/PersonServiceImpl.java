@@ -1,3 +1,5 @@
+// En el archivo: com/springboot/webflux/deathnote/services/PersonServiceImpl.java
+
 package com.springboot.webflux.deathnote.services;
 
 import com.springboot.webflux.deathnote.model.Person;
@@ -9,7 +11,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.LocalDateTime; // ¡IMPORTANTE! Importar LocalDateTime
+import java.time.LocalDateTime;
 
 @Service
 public class PersonServiceImpl implements PersonService {
@@ -31,7 +33,8 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public Mono<Person> save(Person person) {
-        log.debug("Guardando persona: {}", person.getName());
+        log.debug("Guardando persona: {} con ID: {}, Foto: {}, Estado: {}, Viva: {}",
+                person.getName(), person.getId(), person.getFacePhoto(), person.getStatus(), person.isAlive());
         return personRepository.save(person);
     }
 
@@ -43,19 +46,30 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public Mono<Person> saveInitialEntry(Person person) {
-        LocalDateTime now = LocalDateTime.now(); // Usar LocalDateTime.now()
-
+        LocalDateTime now = LocalDateTime.now();
         person.setEntryTime(now);
-        person.setScheduledDeathTime(now.plusSeconds(40));
+        person.setIsAlive(true); // La persona está viva al ser anotada inicialmente.
 
-        person.setStatus("PENDING_HEART_ATTACK");
-        person.setIsAlive(true);
-        person.setCauseOfDeath(null);
-        person.setDeathDetails(null);
-
-        log.info("Anotando a {} para morir de ataque al corazón en 40s. Hora de entrada: {}, Hora programada de muerte: {}",
-                person.getName(), person.getEntryTime(), person.getScheduledDeathTime());
-
-        return this.save(person);
+        // Verificar si se ha asignado una foto (asumimos que se hizo en el controlador)
+        if (person.getFacePhoto() != null && !person.getFacePhoto().isEmpty()) {
+            // --- CASO: Nombre y Foto ---
+            // Se programa la muerte por ataque al corazón en 40 segundos.
+            person.setScheduledDeathTime(now.plusSeconds(40));
+            person.setStatus("PENDING_HEART_ATTACK"); // El scheduler buscará este estado.
+            person.setCauseOfDeath(null); // Se definirá por el scheduler como "Ataque al Corazón".
+            person.setDeathDetails("Muerte programada por efecto de Death Note (con foto)."); // Detalle inicial
+            log.info("ANOTADA (CON FOTO): {} (ID: {}). Muerte programada por ataque al corazón para las {}. Foto: {}",
+                    person.getName(), person.getId(), person.getScheduledDeathTime(), person.getFacePhoto());
+        } else {
+            // --- CASO: Solo Nombre (Sin Foto) ---
+            // La persona es anotada pero no muere automáticamente por este efecto.
+            person.setScheduledDeathTime(null); // No hay muerte programada.
+            person.setStatus("ALIVE_NO_PHOTO_EFFECT"); // Un estado para indicar que está anotada pero el efecto de muerte no aplica.
+            person.setCauseOfDeath(null);
+            person.setDeathDetails("Anotada sin foto, efecto de muerte automática no aplicado.");
+            log.info("ANOTADA (SIN FOTO): {}. La persona permanece viva, sin muerte programada. Foto: {}",
+                    person.getName(), (person.getFacePhoto() == null || person.getFacePhoto().isEmpty() ? "Ninguna" : person.getFacePhoto()));
+        }
+        return this.save(person); // Guardar la persona con su estado inicial.
     }
 }

@@ -1,122 +1,73 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-  <head>
+<head>
     <meta charset="UTF-8" />
-    <title th:text="${title}">Death Note</title>
-  <link rel="stylesheet" th:href="@{/style.css}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:text="${pageTitle != null ? pageTitle : 'Anotar Nombre - Death Note'}">Anotar Nombre - Death Note</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Roboto+Condensed:ital@0;1&display=swap"
-      rel="stylesheet"
-    />="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Roboto+Condensed:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet" />
+    
     <link rel="stylesheet" th:href="@{/style.css}" />
-  </head>
-
- <header class="site-header">
-      <div class="logo-container">
-        <img th:src="@{/assets/deathNoteWhite.png}" alt="Logo Death Note" />
-      </div>
-      <nav class="main-nav">
-        <ul>
-          <li><a th:href="@{/}">Seleccionar Death Note</a></li>
-          <li><a th:href="@{/rules}">Reglas</a></li>
-          <li><a th:href="@{/anotarNombres}">Anotar nombres</a></li>
-          <li><a th:href="@{/listadoNombres}">Listado de nombres</a></li>
-        </ul>
-      </nav>
+</head>
+<body> <header class="site-header">
+        <div class="logo-container">
+            <img th:src="@{/assets/deathNoteWhite.png}" alt="Logo Death Note" />
+        </div>
+        <nav class="main-nav">
+            <ul>
+                <li><a th:href="@{/}">Seleccionar Death Note</a></li>
+                <li><a th:href="@{/rules}">Reglas</a></li>
+                <li><a th:href="@{/anotarNombres}">Anotar nombres</a></li> <li><a th:href="@{/listadoNombres}">Listado de nombres</a></li>
+            </ul>
+        </nav>
     </header>
-  <body>
-    <div
-      th:if="${param.error != null}"
-      th:text="${param.error}"
-      class="error-message"
-    ></div>
-    <div
-      th:if="${param.success != null}"
-      th:text="${param.success}"
-      class="success-message"
-    ></div>
 
-    <main>
-      <section>
-        <h2>Añadir Persona a la Death Note</h2>
-        <form
-          th:action="@{/list}"
-          method="post"
-          th:object="${person}"
-          enctype="multipart/form-data"
-        >
-          <div>
-            <label for="name">Nombre:</label>
-            <div>
-              <input type="text" th:field="*{name}" required />
-              <small
-                th:if="${#fields.hasErrors('name')}"
-                th:errors="*{name}"
-                class="error-text"
-              ></small>
-            </div>
-          </div>
+    <div th:if="${param.error != null}" th:text="${param.error}" class="message error-message"></div>
+    <div th:if="${param.success != null}" th:text="${param.success}" class="message success-message"></div>
 
-          <div>
-            <label for="file">Foto del rostro:</label>
-            <div>
-              <input type="file" id="file" name="file" accept="image/*" />
-            </div>
-          </div>
+    <main class="main-content anotar-nombres-page">
+        <section class="form-section">
+            <h2>Añadir Persona a la Death Note</h2>
+            
+            <form class="styled-form" th:action="@{/persons/add}" method="post" th:object="${person}" enctype="multipart/form-data">
+                
+                <div class="form-row">
+                    <label for="name">Nombre:</label>
+                    <input type="text" id="name" th:field="*{name}" required />
+                    <small th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="error-text"></small>
+                </div>
 
-          <div>
-            <label for="deathDate">Fecha de la muerte:</label>
-            <div>
-              <input type="date" th:field="*{deathDate}" />
-              <small
-                th:if="${#fields.hasErrors('deathDate')}"
-                th:errors="*{deathDate}"
-                class="error-text"
-              ></small>
-            </div>
-          </div>
+                <div class="form-row">
+                    <label for="file">Foto del rostro:</label>
+                    <input type="file" id="file" name="file" accept="image/*" />
+                </div>
 
-          <div>
-            <label for="horario">
-                <span>Hora de muerte</span>
-                <input type="time" id="horario">
-            </label>
-          </div>
+                <div class="form-row">
+                    <label for="deathDate">Fecha de la muerte:</label>
+                    <input type="date" id="deathDate" th:field="*{deathDate}" />
+                    <small th:if="${#fields.hasErrors('deathDate')}" th:errors="*{deathDate}" class="error-text"></small>
+                </div>
+                
+                <div class="form-row">
+                    <label for="horario">Hora de muerte:</label>
+                    <input type="time" id="horario" name="deathTime"/> 
+                </div>
 
-          <div>
-            <label for="deathDetails">Detalles de la muerte:</label>
-            <div>
-              <input type="text" th:field="*{deathDetails}" />
-              <small
-                th:if="${#fields.hasErrors('deathDetails')}"
-                th:errors="*{deathDetails}"
-                class="error-text"
-              ></small>
-            </div>
-          </div>
+                <div class="form-row">
+                    <label for="deathDetails">Detalles de la muerte:</label>
+                    <input type="text" id="deathDetails" th:field="*{deathDetails}" />
+                    <small th:if="${#fields.hasErrors('deathDetails')}" th:errors="*{deathDetails}" class="error-text"></small>
+                </div>
 
-          <div>
-            <label for="deathNoteId">Seleccionar Death Note:</label>
-            <div>
-              <select id="deathNoteId" name="deathNoteId" required>
-                <option value="">-- Elige una Death Note --</option>
-                <option
-                  th:each="dn : ${deathNotes}"
-                  th:value="${dn.id}"
-                  th:text="'ID Death Note: ' + ${dn.id} + (${dn.shinigamiId != null && !#strings.isEmpty(dn.shinigamiId)} ? ' (ID Shinigami: ' + ${dn.shinigamiId} + ')' : ' (Shinigami no asignado)')"
-                ></option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <input type="submit" th:value="${button}" />
-          </div>
-        </form>
-      </section>
+                <div class="form-row">
+        
+                <div class="form-row submit-row">
+                    <button type="submit" class="submit-button" th:text="${button != null ? button : 'Añadir a la Lista'}"></button>
+                </div>
+            </form>
+        </section>
     </main>
-  </body>
+</body>
 </html>

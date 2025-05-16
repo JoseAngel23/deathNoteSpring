@@ -16,10 +16,7 @@ import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebSession; // Importar WebSession
@@ -34,6 +31,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.UUID;
 
 @Controller
@@ -118,95 +118,149 @@ public class PersonController { // Considera renombrar a AppController o dividir
         return Mono.just("form");
     }
 
+    @PostMapping("/api/test-upload")
+    @ResponseBody // Para devolver una respuesta de texto simple
+    public Mono<String> handleFileUploadTest(@RequestParam(name = "file", required = false) FilePart filePart) {
+        if (filePart != null) {
+            log.info("[TEST UPLOAD] Archivo recibido: {}, tamaño: {}", filePart.filename(), filePart.headers().getContentLength());
+            // No intentes guardarlo, solo confirma recepción
+            return Mono.just("Archivo recibido: " + filePart.filename());
+        } else {
+            log.info("[TEST UPLOAD] FilePart es NULO.");
+            return Mono.just("Archivo NO recibido (FilePart fue nulo).");
+        }
+    }
+
     @PostMapping("/persons/add")
-    public Mono<String> savePerson(@Valid Person person, BindingResult result, Model model,
+    public Mono<String> savePerson(@Valid Person personInput, BindingResult result, Model model,
                                    @RequestParam(name = "file", required = false) FilePart file,
+                                   @RequestParam(name = "deathTime", required = false) String deathTimeStr,
                                    WebSession session, SessionStatus sessionStatus) {
+
+        final Person person = personInput; // Usar esta referencia
 
         String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
         if (activeDeathNoteId == null) {
-            log.warn("No hay Death Note activa en sesión al intentar guardar persona. Redirigiendo a selección (/).");
-            // Añadir un mensaje de error al modelo si rediriges a una página que pueda mostrarlo
-            // model.addAttribute("globalError", "Por favor, selecciona una Death Note primero.");
+            log.warn("No hay Death Note activa en sesión al guardar persona. Redirigiendo.");
             return Mono.just("redirect:/?error=" + encodeURL("Por favor, selecciona una Death Note primero."));
         }
-        person.setDeathNoteId(activeDeathNoteId); // Asignar la DN activa a la persona
+        person.setDeathNoteId(activeDeathNoteId);
 
+        log.info("Inicio de savePerson para: {}. DN Activa: {}", person.getName(), activeDeathNoteId);
+
+        // Loguear estado del FilePart 'file' recibido
+        if (file != null) {
+            log.info("FilePart 'file' NO es nulo.");
+            if (file.filename() != null && !file.filename().isEmpty()) {
+                log.info("Nombre original del archivo en FilePart: '{}', ContentType: {}", file.filename(), file.headers().getContentType());
+            } else {
+                log.warn("FilePart 'file' recibido, pero su nombre es nulo o vacío. Headers: {}", file.headers());
+            }
+        } else {
+            log.info("FilePart 'file' ES nulo.");
+        }
+
+        // ... (tu lógica para combinar deathDate y deathTimeStr, si la tienes)
+        // ... (tu bloque if (result.hasErrors()) { ... } )
         if (result.hasErrors()) {
             log.warn("Errores de validación al guardar persona: {}", person.getName());
-            result.getAllErrors().forEach(err -> log.warn("Error de validación: {}", err));
+            result.getAllErrors().forEach(err -> log.warn("Error de validación: {}", err.toString()));
             model.addAttribute("pageTitle", "Error al Anotar Persona");
             model.addAttribute("button", "Reintentar Anotar");
-            model.addAttribute("activeDeathNoteId", activeDeathNoteId); // Para que el form lo siga teniendo
-            // model.addAttribute("person", person); // Spring usualmente lo hace con BindingResult
-            return Mono.just("form"); // Volver al formulario de anotar nombres
+            model.addAttribute("activeDeathNoteId", activeDeathNoteId);
+            return Mono.just("form");
         }
 
-        Mono<String> photoFilenameMono;
-        if (file != null && file.filename() != null && !file.filename().isEmpty()) {
-            String uniqueFilename = UUID.randomUUID().toString() + "-" +
-                    file.filename().replace(" ", "").replace(":", "").replace("\\", "");
+
+        Mono<Void> photoProcessingMono;
+
+        // Condición para procesar el archivo
+        boolean processFile = (file != null && file.filename() != null && !file.filename().isEmpty());
+        log.info("¿Se procesará el archivo? : {}", processFile);
+
+        if (processFile) {
+            String originalFilename = file.filename();
+            String safeOriginalFilename = originalFilename.replaceAll("[^a-zA-Z0-9._-]", "_");
+            String uniqueFilename = UUID.randomUUID().toString() + "-" + safeOriginalFilename;
             Path targetPath = Paths.get(uploadPath).resolve(uniqueFilename);
             File uploadDirFile = new File(uploadPath);
-            if (!uploadDirFile.exists()) { uploadDirFile.mkdirs(); }
 
-            log.info("Guardando archivo {} en {}", uniqueFilename, targetPath);
-            photoFilenameMono = file.transferTo(targetPath)
-                    .thenReturn(uniqueFilename)
-                    .doOnError(e -> log.error("Error al transferir archivo {}", file.filename(), e));
+            if (!uploadDirFile.exists()) {
+                boolean dirCreated = uploadDirFile.mkdirs();
+                log.info("Directorio de subida {} creado: {}", uploadPath, dirCreated);
+            }
+
+            log.info("Intentando guardar archivo: '{}' como '{}' en la ruta: '{}'", originalFilename, uniqueFilename, targetPath);
+            photoProcessingMono = file.transferTo(targetPath)
+                    .doOnSuccess(voidResult -> {
+                        log.info("ARCHIVO TRANSFERIDO EXITOSAMENTE: '{}'. Asignando nombre a person.facePhoto.", uniqueFilename);
+                        person.setFacePhoto(uniqueFilename); // Actualiza el objeto person
+                    })
+                    .doOnError(e -> {
+                        log.error("ERROR AL TRANSFERIR ARCHIVO '{}': {}. La foto no se asignará.", originalFilename, e.getMessage(), e);
+                        // No se asigna person.facePhoto si hay error, se continuará como si no hubiera foto.
+                    })
+                    .then() // Convierte a Mono<Void>
+                    .onErrorResume(e -> { // Si transferTo falla catastróficamente antes de doOnError
+                        log.error("ERROR CATASTRÓFICO AL TRANSFERIR ARCHIVO '{}', continuando sin foto: {}", originalFilename, e.getMessage());
+                        return Mono.empty(); // Continuar como si no hubiera foto
+                    });
         } else {
-            photoFilenameMono = Mono.justOrEmpty(person.getFacePhoto());
+            log.info("No se proporcionó archivo de foto válido. person.facePhoto actual (antes de saveInitialEntry): {}", person.getFacePhoto());
+            photoProcessingMono = Mono.empty(); // No hay procesamiento de foto nuevo.
         }
 
-        return photoFilenameMono
-                .doOnNext(filename -> {
-                    if (filename != null) person.setFacePhoto(filename);
-                })
-                .defaultIfEmpty(person.getFacePhoto()) // Si no hay foto nueva y no había una antes, será null
-                .flatMap(photoName -> {
-                    if (person.getId() == null || person.getId().isEmpty()) { // Es una nueva persona
-                        log.info("Llamando a personService.saveInitialEntry para: {} en DN: {}", person.getName(), activeDeathNoteId);
+        return photoProcessingMono
+                .then(Mono.defer(() -> {
+                    log.info("Dentro de Mono.defer. Nombre: {}, Foto actual en objeto person (después de photoProcessingMono): {}", person.getName(), person.getFacePhoto());
+
+                    if (person.getId() == null || person.getId().isEmpty()) {
+                        log.info("Llamando a personService.saveInitialEntry para: {}. Foto que se pasará al servicio: {}", person.getName(), person.getFacePhoto());
                         return personService.saveInitialEntry(person);
-                    } else { // Actualización (esta lógica necesitará un formulario de edición separado)
-                        log.info("Llamando a personService.save (actualización) para: {}", person.getName());
+                    } else {
+                        // Lógica de actualización (asegúrate que esta lógica también usa person.getFacePhoto())
+                        log.info("Llamando a lógica de actualización para: {}. Foto: {}", person.getName(), person.getFacePhoto());
                         return personService.findById(person.getId())
                                 .flatMap(existingPerson -> {
                                     existingPerson.setName(person.getName());
                                     existingPerson.setDeathDate(person.getDeathDate());
                                     existingPerson.setDeathDetails(person.getDeathDetails());
-                                    existingPerson.setFacePhoto(person.getFacePhoto());
-                                    existingPerson.setDeathNoteId(activeDeathNoteId); // Asegurar que sigue asociada a la DN activa
-                                    // Aquí decidir si se puede cambiar el status, isAlive, etc. desde un form de edición
+                                    existingPerson.setFacePhoto(person.getFacePhoto()); // Usa la foto del objeto 'person'
+                                    existingPerson.setDeathNoteId(activeDeathNoteId);
                                     return personService.save(existingPerson);
                                 })
                                 .switchIfEmpty(Mono.error(new RuntimeException("No se encontró la persona para actualizar con ID: " + person.getId())));
                     }
-                })
+                }))
                 .flatMap(savedPerson -> {
-                    log.info("Persona '{}' guardada (ID: {}). Asociando con DeathNote ID: {}", savedPerson.getName(), savedPerson.getId(), activeDeathNoteId);
-                    // El personService.saveInitialEntry ya preparó a la persona.
-                    // writePersonInDeathNote ahora se encarga más de la "escritura" formal y de actualizar la lista en DeathNote.
+                    log.info("Persona '{}' guardada/procesada (ID: {}). Foto: {}. Estado: {}, Viva: {}. Asociando con DN: {}",
+                            savedPerson.getName(), savedPerson.getId(), savedPerson.getFacePhoto(), savedPerson.getStatus(), savedPerson.isAlive(), activeDeathNoteId);
+
+                    LocalDateTime deathTimestampForNote = savedPerson.getScheduledDeathTime() != null ? savedPerson.getScheduledDeathTime() : savedPerson.getDeathDate();
+                    if (person.getDeathDate() != null && (deathTimeStr != null && !deathTimeStr.isEmpty())) {
+                        deathTimestampForNote = person.getDeathDate(); // Si se especificó fecha y hora explícita, usar esa.
+                    }
+
                     return deathNoteService.writePersonInDeathNote(
-                            activeDeathNoteId, // Usar el ID de la DN activa de la sesión
+                            activeDeathNoteId,
                             savedPerson.getId(),
                             savedPerson.getDeathDetails(),
-                            savedPerson.getDeathDate(),
+                            deathTimestampForNote,
                             savedPerson.getFacePhoto()
-                    ).map(deathNote -> savedPerson); // Devolver savedPerson para el siguiente doOnSuccess
+                    ).map(updatedDeathNote -> savedPerson);
                 })
-                .doOnSuccess(savedPerson -> {
-                    log.info("Persona {} procesada y asociada a DeathNote. Completando status de sesión.", savedPerson.getName());
-                    // sessionStatus.setComplete(); // Usar si tienes @SessionAttributes("person") en el controlador
+                .doOnSuccess(finalSavedPerson -> {
+                    log.info("Proceso completado para persona {} ({}). Redirigiendo.", finalSavedPerson.getName(), finalSavedPerson.getId());
                 })
                 .thenReturn("redirect:/listNames?success=" + encodeURL("Persona '" + person.getName() + "' procesada exitosamente."))
                 .onErrorResume(e -> {
-                    log.error("Error en el flujo de guardado de persona: {}", e.getMessage(), e);
+                    log.error("ERROR FINAL en el flujo de savePerson para '{}': {}", person.getName(), e.getMessage(), e);
                     model.addAttribute("pageTitle", "Error al Anotar Persona");
                     model.addAttribute("button", "Reintentar Anotar");
                     model.addAttribute("activeDeathNoteId", activeDeathNoteId);
-                    // model.addAttribute("person", person); // Spring lo hace
-                    model.addAttribute("errorMessage", "Error: " + encodeURL(e.getMessage()));
-                    return Mono.just("form"); // Volver al form de anotar_nombres con error
+                    model.addAttribute("person", person);
+                    model.addAttribute("errorMessage", "Error al procesar: " + e.getMessage());
+                    return Mono.just("form");
                 });
     }
 

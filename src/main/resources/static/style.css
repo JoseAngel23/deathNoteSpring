@@ -190,13 +190,10 @@ body {
 }
 
 .rules-section h2 {
-    font-size: 2.2rem; /* O el tamaño que tenías y te gustaba */
-    /* font-family: "Roboto Condensed", sans-serif; */ /* Opcional: si quieres una fuente diferente para los subtítulos */
-    /* text-transform: uppercase; */ /* Opcional: para que los subtítulos estén en mayúsculas */
-    /* letter-spacing: 0.05em; */ /* Opcional */
+    font-size: 2.2rem; 
     margin-bottom: 1.5rem;
     border-bottom: 1px solid #444;
-    padding-bottom: 0.75rem; /* Ajusta el padding para el separador */
+    padding-bottom: 0.75rem; 
     color: var(--primary-font-color);
 }
 
@@ -214,3 +211,172 @@ body {
 }
 
 /* ... (tus estilos para .rules-continue-button-container y .continue-button) ... */
+
+/* =============================================== */
+/* Estilos para la Página de Anotar Nombres        */
+/* (anotarNombres.html)                          */
+/* =============================================== */
+
+.main-content.anotar-nombres-page {
+    /* flex-grow: 1; ya debería estar en .main-content general si lo tienes */
+    /* display: flex; ya debería estar en .main-content general */
+    /* flex-direction: column; ya debería estar en .main-content general */
+    /* align-items: center; ya debería estar en .main-content general */
+    justify-content: flex-start; /* Alinea el contenido principal arriba, en lugar de centrarlo verticalmente en toda la página */
+    padding-top: 4rem;      /* Más espacio arriba si es necesario */
+    padding-bottom: 4rem;   /* Espacio abajo */
+}
+
+.form-section {
+    width: 100%;
+    max-width: 700px; /* Ancho máximo del contenedor del formulario */
+    background-color: #1C1C1C; /* Un fondo un poco más oscuro y diferenciado */
+    padding: 2.5rem 3rem; /* Padding interno (arriba/abajo, izq/der) */
+    border-radius: 8px;
+    border: 1px solid #2D2D2D; /* Borde sutil */
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25); /* Sombra más pronunciada */
+}
+
+.form-section h2 {
+    text-align: center;
+    font-size: 2.8rem; 
+    color: var(--primary-font-color);
+    margin-bottom: 3rem; /* Más espacio después del título */
+    font-weight: 600; /* Un poco más de peso a la fuente */
+    /* font-family: "Roboto Condensed", sans-serif; */ /* Opcional si quieres fuente diferente para el título del form */
+}
+
+/* Mensajes Globales de Error/Éxito */
+.message {
+    padding: 1.2rem 1.5rem; /* Un poco más de padding */
+    margin: 0 auto 2.5rem auto; 
+    border-radius: 5px;
+    font-size: 1.5rem;
+    font-weight: 500; /* Un poco más de peso */
+    text-align: center;
+    max-width: 700px; /* Coincide con .form-section */
+    color: #fff;
+    border-left: 5px solid; /* Borde lateral para énfasis */
+}
+.error-message {
+    background-color: rgba(183, 28, 28, 0.2); /* Fondo rojo translúcido */
+    border-color: var(--button-color); /* Rojo oscuro para el borde */
+    color: #ffcdd2; /* Texto rojo claro */
+}
+.success-message {
+    background-color: rgba(56, 118, 29, 0.2); /* Fondo verde translúcido */
+    border-color: #38761D; /* Verde oscuro para el borde */
+    color: #c8e6c9; /* Texto verde claro */
+}
+
+
+/* Estilos para el Formulario */
+.styled-form {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem; /* Espacio entre cada .form-row */
+}
+
+.form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem; /* Espacio entre etiqueta y campo */
+}
+
+.form-row label {
+    font-size: 1.6rem;
+    color: var(--primary-font-color);
+    text-align: left;
+    font-weight: 500; /* Un poco más de peso para las etiquetas */
+    /* font-family: "Roboto Condensed", sans-serif; */
+}
+
+/* Estilo base para inputs y select */
+.styled-form input[type="text"],
+.styled-form input[type="date"],
+.styled-form input[type="time"],
+.styled-form input[type="file"],
+.styled-form select {
+    width: 100%;
+    padding: 1.2rem 1.4rem; /* Padding ajustado */
+    background-color: #252525; /* Fondo de input ligeramente más claro */
+    border: 1px solid #3D3D3D; /* Borde más definido */
+    color: var(--primary-font-color);
+    font-family: "Roboto Condensed", sans-serif;
+    font-size: 1.5rem;
+    border-radius: 4px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.styled-form input[type="text"]:focus,
+.styled-form input[type="date"]:focus,
+.styled-form input[type="time"]:focus,
+.styled-form input[type="file"]:focus,
+.styled-form select:focus {
+    outline: none;
+    border-color: var(--button-color); 
+    box-shadow: 0 0 0 3px rgba(183, 28, 28, 0.25); /* Sombra roja más suave al enfocar */
+}
+
+/* Estilo específico para input file (base) */
+.styled-form input[type="file"] {
+    padding: 0.6rem 0.8rem; /* Padding específico para el contenedor del file input */
+}
+.styled-form input[type="file"]::file-selector-button {
+    background-color: var(--button-color);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.2rem; /* Padding del botón interno */
+    border-radius: 3px;
+    cursor: pointer;
+    margin-right: 1rem;
+    font-family: "Roboto Condensed", sans-serif;
+    font-weight: 500;
+    font-size: 1.4rem;
+    transition: background-color 0.2s ease;
+}
+.styled-form input[type="file"]::file-selector-button:hover {
+    background-color: #9A1E1E;
+}
+
+
+.error-text {
+    font-size: 1.3rem;
+    color: #EF5350; /* Rojo claro para errores de campo */
+    margin-top: 0.4rem;
+    display: block;
+    font-weight: 500;
+}
+
+.submit-row {
+    margin-top: 1.5rem; 
+    display: flex; /* Para centrar el botón si no ocupa todo el ancho */
+    justify-content: center; /* Centra el botón horizontalmente */
+}
+
+.submit-button {
+    padding: 1.2rem 3rem; /* Padding generoso */
+    background-color: var(--button-color);
+    color: #FFFFFF;
+    border: none;
+    font-family: "Roboto Condensed", sans-serif;
+    font-weight: 500; /* Un poco más de peso */
+    font-size: 1.7rem;
+    cursor: pointer;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em; /* Un poco más de espaciado */
+    min-width: 200px; /* Ancho mínimo para el botón */
+    text-align: center;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.submit-button:hover {
+    background-color: #9A1E1E;
+    transform: translateY(-1px); /* Ligero efecto al pasar el mouse */
+}
+.submit-button:active {
+    transform: translateY(0px); /* Efecto al presionar */
+}
+
+/* Final de Estilos para la Página de Anotar Nombres */
