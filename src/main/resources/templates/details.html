@@ -1,11 +1,135 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalles de la muerte</title>
-</head>
-<body>
-    
-</body>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title
+      th:text="'Detalles de Muerte - ' + ${person != null ? person.name : 'Persona'}"
+    >
+      Detalles de Muerte
+    </title>
+    <link rel="stylesheet" th:href="@{/style.css}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Roboto+Condensed:ital,wght@0,400..800;1,400..800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="logo-container">
+        <img th:src="@{/assets/deathNoteWhite.png}" alt="Logo Death Note" />
+      </div>
+      <nav class="main-nav">
+        <ul>
+          <li><a th:href="@{/}">Seleccionar Death Note</a></li>
+          <li><a th:href="@{/rules}">Reglas</a></li>
+          <li><a th:href="@{/anotarNombres}">Anotar Nombres</a></li>
+          <li><a th:href="@{/listNames}">Listado de Nombres</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <div
+      th:if="${errorMessage != null}"
+      th:text="${errorMessage}"
+      class="message error-message"
+    ></div>
+
+    <main class="main-content anotar-nombres-page">
+      <section class="form-section" th:if="${person != null}">
+        <h2 th:text="'Especificar Muerte para: ' + ${person.name}">
+          Especificar Muerte
+        </h2>
+
+        <form
+          class="styled-form"
+          th:action="@{/persons/details/save}"
+          method="post"
+          th:object="${person}"
+        >
+          <input type="hidden" th:field="*{id}" />
+          <input type="hidden" th:field="*{name}" />
+          <input type="hidden" th:field="*{facePhoto}" />
+          <input type="hidden" th:field="*{deathNoteId}" />
+          <input type="hidden" th:field="*{entryTime}" />
+          <input type="hidden" th:field="*{alive}" />
+          <input type="hidden" th:field="*{status}" />
+          <input type="hidden" th:field="*{scheduledDeathTime}" />
+
+          <div class="form-row">
+            <label for="explicitDeathDateStr"
+              >Fecha de la Muerte (dd/MM/yyyy):</label
+            >
+            <input
+              type="date"
+              id="explicitDeathDateStr"
+              name="explicitDeathDateStr"
+              th:value="${explicitDeathDateStrSubmitted != null ? explicitDeathDateStrSubmitted : (person.deathDate != null ? #temporals.format(person.deathDate, 'yyyy-MM-dd') : '')}"
+            />
+            <small
+              th:if="${#fields.hasErrors('deathDate') && #strings.contains(#fields.errors('deathDate')[0], 'NotEmpty') && !#strings.contains(#fields.errors('deathDate')[0], 'NotEmpty.time')}"
+              th:errors="*{deathDate}"
+              class="error-text"
+            ></small>
+            <small
+              th:if="${#fields.hasErrors('deathDate') && #strings.contains(#fields.errors('deathDate')[0], 'invalid.datetime')}"
+              class="error-text"
+              >Formato de fecha u hora inválido. Use yyyy-MM-dd y HH:mm.</small
+            >
+          </div>
+
+          <div class="form-row">
+            <label for="explicitDeathTimeStr">Hora de la Muerte (HH:mm):</label>
+            <input
+              type="time"
+              id="explicitDeathTimeStr"
+              name="explicitDeathTimeStr"
+              th:value="${explicitDeathTimeStrSubmitted != null ? explicitDeathTimeStrSubmitted : (person.deathDate != null ? #temporals.format(person.deathDate, 'HH:mm') : '')}"
+            />
+            <small
+              th:if="${#fields.hasErrors('deathDate') && #strings.contains(#fields.errors('deathDate')[0], 'NotEmpty.time')}"
+              class="error-text"
+              >La hora de muerte es obligatoria.</small
+            >
+          </div>
+
+          <div class="form-row">
+            <label for="deathDetails">Detalles de la Muerte:</label>
+            <textarea
+              id="deathDetails"
+              th:field="*{deathDetails}"
+              rows="3"
+            ></textarea>
+            <small
+              th:if="${#fields.hasErrors('deathDetails')}"
+              th:errors="*{deathDetails}"
+              class="error-text"
+            ></small>
+          </div>
+
+          <div class="form-row">
+            <label for="causeOfDeath">Causa de la Muerte (opcional):</label>
+            <input type="text" id="causeOfDeath" th:field="*{causeOfDeath}" />
+            <small
+              th:if="${#fields.hasErrors('causeOfDeath')}"
+              th:errors="*{causeOfDeath}"
+              class="error-text"
+            ></small>
+          </div>
+
+          <div class="form-row submit-row">
+            <button type="submit" class="submit-button">
+              Guardar Detalles de Muerte
+            </button>
+            <a th:href="@{/listNames}" class="cancel-button">Cancelar</a>
+          </div>
+        </form>
+      </section>
+      <section th:unless="${person != null}">
+        <p>Persona no encontrada.</p>
+      </section>
+    </main>
+  </body>
 </html>

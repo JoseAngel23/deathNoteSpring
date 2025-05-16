@@ -28,7 +28,7 @@ public class DeathSchedulerService {
         log.info("SCHEDULER: Ciclo iniciado. Hora actual: {}. Buscando: status='{}', isAlive={}, scheduledDeathTime < {}",
                 currentTime, targetStatus, targetIsAlive, currentTime);
 
-        personRepository.findAllByStatusAndScheduledDeathTimeBeforeAndIsAlive(targetStatus, currentTime, targetIsAlive)
+        personRepository.findAllByStatusAndScheduledDeathTimeBeforeAndAlive(targetStatus, currentTime, targetIsAlive)
                 .collectList() // Colecta para loguear el tamaño de la lista encontrada
                 .flatMapMany(list -> {
                     if (list.isEmpty()) {
@@ -44,7 +44,7 @@ public class DeathSchedulerService {
                     log.info("SCHEDULER: Procesando a: {} (ID: {}). Hora de muerte programada original: {}",
                             person.getName(), person.getId(), person.getScheduledDeathTime());
 
-                    person.setIsAlive(false);
+                    person.setAlive(false);
                     person.setCauseOfDeath("Ataque al Corazón (Automático por Scheduler)");
                     person.setDeathDate(person.getScheduledDeathTime()); // Asigna la hora programada como la hora de muerte real
                     person.setStatus("DEAD");

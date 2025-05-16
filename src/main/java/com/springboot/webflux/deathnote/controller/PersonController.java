@@ -31,8 +31,10 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.UUID;
 
@@ -357,5 +359,106 @@ public class PersonController { // Considera renombrar a AppController o dividir
         } catch (UnsupportedEncodingException e) {
             return value; // Fallback
         }
+    }
+
+    @GetMapping("/persons/details/{id}")
+    public Mono<String> showDeathDetailsForm(@PathVariable String id, Model model, WebSession session) {
+        String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
+        if (activeDeathNoteId == null) {
+            // Si quieres, puedes permitir ver/editar detalles sin una DN activa,
+            // o redirigir como lo haces en otros lugares.
+            log.warn("Intento de acceder a detalles de muerte sin DN activa. ID Persona: {}", id);
+            // return Mono.just("redirect:/?error=" + encodeURL("Por favor, selecciona una Death Note primero."));
+        }
+
+        log.info("Mostrando formulario de detalles de muerte para persona con ID: {}", id);
+        return personService.findById(id)
+                .flatMap(person -> {
+
+                    model.addAttribute("person", person);
+                    model.addAttribute("pageTitle", "Especificar Muerte para " + person.getName());
+                    model.addAttribute("activeDeathNoteId", activeDeathNoteId); // Puede ser útil en el form
+                    return Mono.just("details");
+                })
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.warn("Persona no encontrada con ID {} al intentar mostrar detalles de muerte.", id);
+                    return Mono.just("redirect:/listNames?error=" + encodeURL("Persona no encontrada con ID: " + id));
+                }));
+    }
+
+    @PostMapping("/persons/details/save")
+    public Mono<String> saveDeathDetails(@ModelAttribute("person") Person personFromForm,
+                                         BindingResult result,
+                                         @RequestParam(name = "explicitDeathDateStr", required = false) String explicitDeathDateStr, // Hazlo opcional
+                                         @RequestParam(name = "explicitDeathTimeStr", required = false) String explicitDeathTimeStr, // Hazlo opcional
+                                         Model model, WebSession session, SessionStatus sessionStatus) {
+
+        String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
+        // Considera si necesitas validar activeDeathNoteId aquí también
+
+        log.info("Guardando detalles de muerte para Persona ID: {}", personFromForm.getId());
+        // Usar el nombre correcto del parámetro en el log:
+        log.info("Datos recibidos - FechaStr: {}, HoraStr: {}, Detalles: {}, Causa: {}",
+                explicitDeathDateStr, explicitDeathTimeStr, personFromForm.getDeathDetails(), personFromForm.getCauseOfDeath());
+
+        LocalDateTime finalDeathDateTime = null;
+
+        if (explicitDeathDateStr == null || explicitDeathDateStr.trim().isEmpty()) {
+            result.rejectValue("deathDate", "NotEmpty", "La fecha de muerte es obligatoria.");
+        }
+        if (explicitDeathTimeStr == null || explicitDeathTimeStr.trim().isEmpty()) {
+            // Asocia el error a un campo que tenga sentido, o a un campo general si es necesario.
+            // "deathDate" podría no ser el mejor campo si es solo para la hora, pero depende de tu objeto Person.
+            // Si tienes un campo específico para la hora en 'personFromForm' (aunque no lo uses para el binding directo de hora),
+            // podrías usar ese. Por ahora, lo dejo asociado a 'deathDate' para consistencia.
+            result.rejectValue("deathDate", "NotEmpty.time", "La hora de muerte es obligatoria.");
+        }
+
+        if (!result.hasErrors()) {
+            try {
+                LocalDate datePart = LocalDate.parse(explicitDeathDateStr, DateTimeFormatter.ISO_LOCAL_DATE);
+                LocalTime timePart = LocalTime.parse(explicitDeathTimeStr, DateTimeFormatter.ISO_LOCAL_TIME);
+                finalDeathDateTime = LocalDateTime.of(datePart, timePart);
+                log.info("Fecha y hora de muerte combinadas: {}", finalDeathDateTime);
+            } catch (DateTimeParseException e) {
+                log.warn("Error al parsear fecha/hora: Date='{}', Time='{}' - Error: {}", explicitDeathDateStr, explicitDeathTimeStr, e.getMessage());
+                result.rejectValue("deathDate", "invalid.datetime", "Formato de fecha u hora inválido. Use YYYY-MM-DD y HH:mm.");
+            }
+        }
+
+        if (result.hasErrors()) {
+            log.warn("Errores de validación al guardar detalles de muerte para ID: {}", personFromForm.getId());
+            // Asegúrate que 'personFromForm' tiene los datos necesarios para repopular el formulario
+            // o recarga la persona original y aplica los cambios del formulario para mostrar.
+            model.addAttribute("person", personFromForm);
+            model.addAttribute("pageTitle", "Error - Detalles de Muerte para " + (personFromForm.getName() != null ? personFromForm.getName() : "ID: " + personFromForm.getId()));
+            model.addAttribute("errorMessage", "Por favor corrige los errores e inténtalo de nuevo.");
+            return Mono.just("details");
+        }
+
+        // Llamar al nuevo método del servicio
+        return personService.specifyDeath(personFromForm.getId(), finalDeathDateTime, personFromForm.getDeathDetails(), personFromForm.getCauseOfDeath())
+                .doOnSuccess(updatedPerson -> {
+                    log.info("Detalles de muerte actualizados para {} (ID: {}).", updatedPerson.getName(), updatedPerson.getId());
+                    // sessionStatus.setComplete(); // Descomenta si usas @SessionAttributes("person") a nivel de clase
+                })
+                .thenReturn("redirect:/listNames?success=" + encodeURL("Detalles de muerte actualizados para '" + personFromForm.getName() + "'."))
+                .onErrorResume(e -> {
+                    log.error("Error al actualizar detalles de muerte para ID {}: {}", personFromForm.getId(), e.getMessage(), e);
+                    // Recargar la persona original para mostrar el formulario con datos consistentes
+                    return personService.findById(personFromForm.getId())
+                            .defaultIfEmpty(personFromForm) // Fallback al objeto del formulario si no se encuentra
+                            .flatMap(originalPerson -> {
+                                model.addAttribute("person", originalPerson);
+                                model.addAttribute("pageTitle", "Error - Detalles de Muerte para " + originalPerson.getName());
+                                model.addAttribute("errorMessage", "Error al guardar los detalles: " + e.getMessage());
+                                // Para que los valores incorrectos que el usuario intentó enviar se muestren de nuevo:
+                                model.addAttribute("explicitDeathDateStrSubmitted", explicitDeathDateStr);
+                                model.addAttribute("explicitDeathTimeStrSubmitted", explicitDeathTimeStr);
+                                model.addAttribute("submittedDeathDetails", personFromForm.getDeathDetails());
+                                model.addAttribute("submittedCauseOfDeath", personFromForm.getCauseOfDeath());
+                                return Mono.just("details");
+                            });
+                });
     }
 }

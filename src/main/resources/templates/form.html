@@ -45,23 +45,6 @@
                 </div>
 
                 <div class="form-row">
-                    <label for="deathDate">Fecha de la muerte:</label>
-                    <input type="date" id="deathDate" th:field="*{deathDate}" />
-                    <small th:if="${#fields.hasErrors('deathDate')}" th:errors="*{deathDate}" class="error-text"></small>
-                </div>
-                
-                <div class="form-row">
-                    <label for="horario">Hora de muerte:</label>
-                    <input type="time" id="horario" name="deathTime"/> 
-                </div>
-
-                <div class="form-row">
-                    <label for="deathDetails">Detalles de la muerte:</label>
-                    <input type="text" id="deathDetails" th:field="*{deathDetails}" />
-                    <small th:if="${#fields.hasErrors('deathDetails')}" th:errors="*{deathDetails}" class="error-text"></small>
-                </div>
-
-                <div class="form-row">
         
                 <div class="form-row submit-row">
                     <button type="submit" class="submit-button" th:text="${button != null ? button : 'Añadir a la Lista'}"></button>

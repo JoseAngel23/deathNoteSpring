@@ -1,5 +1,3 @@
-// En: com/springboot/webflux/deathnote/services/PersonServiceImpl.java
-
 package com.springboot.webflux.deathnote.services;
 
 import com.springboot.webflux.deathnote.model.Person;
@@ -56,7 +54,7 @@ public class PersonServiceImpl implements PersonService {
     public Mono<Person> saveInitialEntry(Person person) {
         LocalDateTime now = LocalDateTime.now();
         person.setEntryTime(now);
-        person.setIsAlive(true); // Siempre viva al ser anotada.
+        person.setAlive(true); // Siempre viva al ser anotada.
 
         // --- LÓGICA TEMPORAL: Muerte en 40 segundos, independientemente de la foto ---
         log.info("Aplicando regla temporal: {} será programada para morir en 40 segundos.", person.getName());
@@ -73,5 +71,39 @@ public class PersonServiceImpl implements PersonService {
                 person.getName(), person.getId(), person.getScheduledDeathTime(), person.getFacePhoto());
 
         return this.save(person); // Llama al método save de esta clase, que luego llama al repositorio.
+    }
+
+    @Override
+    public Mono<Person> specifyDeath(String personId, LocalDateTime explicitDeathDateTime, String details, String cause) {
+        log.info("Servicio: Especificando muerte para ID: {}. Fecha/Hora: {}, Detalles: '{}', Causa: '{}'",
+                personId, explicitDeathDateTime, details, cause);
+
+        return personRepository.findById(personId)
+                .flatMap(person -> {
+                    // Opcional: Verificar si se puede modificar (ej. si no está ya 'DEAD' de forma definitiva)
+                    // if ("DEAD".equals(person.getStatus()) && (person.getCauseOfDeath() != null && !person.getCauseOfDeath().contains("Automático"))) {
+                    //     log.warn("Intentando especificar muerte para {} (ID: {}) que ya está muerta con causa final.", person.getName(), personId);
+                    //     return Mono.error(new IllegalStateException("La persona ya está muerta y los detalles no pueden ser alterados de esta manera."));
+                    // }
+
+                    log.info("Persona encontrada para especificar muerte: {} (ID: {}). Estado actual: {}, Viva: {}",
+                            person.getName(), personId, person.getStatus(), person.isAlive());
+
+                    person.setDeathDate(explicitDeathDateTime); // Esta es la nueva fecha/hora de muerte
+                    person.setDeathDetails(details);
+                    person.setCauseOfDeath(cause != null && !cause.trim().isEmpty() ? cause : "Causa especificada por el usuario");
+                    person.setAlive(false); // Al especificar la muerte, la persona ya no está viva (o lo estará hasta esa fecha)
+                    person.setStatus("DEAD_DETAILS_SPECIFIED"); // Un nuevo estado para indicar que la muerte fue especificada
+                    person.setScheduledDeathTime(null); // Anula cualquier muerte programada por ataque al corazón
+
+                    log.info("Actualizando persona {} (ID: {}) a estado DEAD_DETAILS_SPECIFIED, deathDate: {}",
+                            person.getName(), person.getId(), person.getDeathDate());
+
+                    return this.save(person); // Reutiliza tu método save que ya tiene logging
+                })
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.warn("Servicio: Persona no encontrada con ID: {} para especificar detalles de muerte.", personId);
+                    return Mono.error(new RuntimeException("Persona no encontrada con ID: " + personId + " para especificar detalles de muerte."));
+                }));
     }
 }

@@ -7,5 +7,5 @@ import java.time.LocalDateTime; // Importar LocalDateTime
 
 public interface PersonRepository extends ReactiveMongoRepository<Person, String> {
 
-    Flux<Person> findAllByStatusAndScheduledDeathTimeBeforeAndIsAlive(String status, LocalDateTime scheduledTime, boolean alive);
+    Flux<Person> findAllByStatusAndScheduledDeathTimeBeforeAndAlive(String status, LocalDateTime scheduledTime, boolean alive);
 }

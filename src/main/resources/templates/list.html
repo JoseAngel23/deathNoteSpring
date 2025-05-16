@@ -1,63 +1,114 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-
-    <header>
-
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:text="${pageTitle != null ? pageTitle : 'Listado de Personas'}">
+      Listado de Personas
+    </title>
+    <link rel="stylesheet" th:href="@{/style.css}" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="logo-container">
+        <img th:src="@{/assets/deathNoteWhite.png}" alt="Logo Death Note" />
+      </div>
+      <nav class="main-nav">
+        <ul>
+          <li><a th:href="@{/}">Seleccionar Death Note</a></li>
+          <li><a th:href="@{/rules}">Reglas</a></li>
+          <li><a th:href="@{/anotarNombres}">Anotar Nombres</a></li>
+          <li><a th:href="@{/listNames}">Listado de Nombres</a></li>
+        </ul>
+      </nav>
     </header>
 
-    <main>
-        <section>
-        <h1 th:text="${title}"></h1>
+    <main class="main-content">
+      <section>
+        <h1
+          th:text="${pageTitle != null ? pageTitle : 'Listado de Personas Anotadas'}"
+        >
+          Listado de Personas Anotadas
+        </h1>
+
+        <div
+          th:if="${param.success}"
+          class="message success-message"
+          th:text="${param.success}"
+        ></div>
+        <div
+          th:if="${param.error}"
+          class="message error-message"
+          th:text="${param.error}"
+        ></div>
+
         <table class="people-table">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>ID (Corto)</th>
               <th>Nombre</th>
               <th>¿Viva?</th>
-              <th>Fecha de muerte</th>
-              <th>Detalles</th>
+              <th>Fecha/Hora de Muerte</th>
+              <th>Detalles de Muerte</th>
               <th>Foto</th>
               <th>Borrar</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             <tr th:each="p : ${people}">
-              <td><a th:href="@{'/view/' + ${p.id}}" th:text="${#strings.abbreviate(p.id, 10)}"></a></td>
-              <td th:text="${p.id}"></td>
+              <td>
+                <a
+                  th:href="@{'/view/' + ${p.id}}"
+                  th:text="${#strings.abbreviate(p.id, 10)}"
+                ></a>
+              </td>
               <td th:text="${p.name}"></td>
-              <td th:text="${p.isAlive}"></td>
-              <td th:text="${p.deathDate != null ? #temporals.format(p.deathDate, 'dd/MM/yyyy HH:mm:ss') : 'N/A'}"></td>
+              <td th:text="${p.alive} ? 'Sí' : 'No'"></td>
+              <td
+                th:text="${p.deathDate != null ? #temporals.format(p.deathDate, 'dd/MM/yyyy HH:mm:ss') : 'N/A'}"
+              ></td>
               <td th:text="${p.deathDetails}"></td>
               <td>
                 <img
-                  th:if="${p.facePhoto}"
+                  th:if="${p.facePhoto != null && !p.facePhoto.isEmpty()}"
                   th:src="@{/uploads/{filename}(filename=${p.facePhoto})}"
                   alt="Foto"
                   width="50"
                 />
-                <span th:unless="${p.facePhoto}">Sin foto</span>
+                <span
+                  th:unless="${p.facePhoto != null && !p.facePhoto.isEmpty()}"
+                  >Sin foto</span
+                >
               </td>
               <td>
                 <a
-                  th:href="@{/delete/{id}(id=${p.id})}"
+                  th:href="@{'/delete/' + ${p.id}}"
                   onclick="return confirm('¿Estás seguro de que quieres borrar a esta persona?');"
+                  class="btn btn-danger btn-sm"
                   >Borrar</a
+                >
+              </td>
+              <td>
+                <a
+                  th:if="${p.isAlive() or (p.status != null and p.status.startsWith('PENDING'))}"
+                  th:href="@{'/persons/details/' + ${p.id}}"
+                  class="btn btn-info btn-sm"
+                  >Editar Detalles de Muerte</a
+                >
+                <span
+                  th:unless="${p.isAlive() or (p.status != null and p.status.startsWith('PENDING'))}"
+                  >-</span
+                >
                 >
               </td>
             </tr>
             <tr th:if="${#lists.isEmpty(people)}">
-              <td colspan="7">No hay personas escritas aún.</td>
+              <td colspan="8">No hay personas escritas aún.</td>
             </tr>
           </tbody>
         </table>
       </section>
     </main>
-    
-</body>
+  </body>
 </html>
