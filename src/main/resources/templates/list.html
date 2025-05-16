@@ -32,7 +32,7 @@
               <td th:text="${p.id}"></td>
               <td th:text="${p.name}"></td>
               <td th:text="${p.isAlive}"></td>
-              <td th:text="${#calendars.format(p.deathDate, 'dd/MM/yyyy')}"></td>
+              <td th:text="${p.deathDate != null ? #temporals.format(p.deathDate, 'dd/MM/yyyy HH:mm:ss') : 'N/A'}"></td>
               <td th:text="${p.deathDetails}"></td>
               <td>
                 <img
