@@ -3,14 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <title th:text="${title}">Death Note</title>
+  <link rel="stylesheet" th:href="@{/style.css}" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Roboto+Condensed:ital@0;1&display=swap"
       rel="stylesheet"
+    />="stylesheet"
     />
     <link rel="stylesheet" th:href="@{/style.css}" />
   </head>
+
+ <header class="site-header">
+      <div class="logo-container">
+        <img th:src="@{/assets/deathNoteWhite.png}" alt="Logo Death Note" />
+      </div>
+      <nav class="main-nav">
+        <ul>
+          <li><a th:href="@{/}">Seleccionar Death Note</a></li>
+          <li><a th:href="@{/rules}">Reglas</a></li>
+          <li><a th:href="@{/anotarNombres}">Anotar nombres</a></li>
+          <li><a th:href="@{/listadoNombres}">Listado de nombres</a></li>
+        </ul>
+      </nav>
+    </header>
   <body>
     <div
       th:if="${param.error != null}"
@@ -100,88 +116,6 @@
             <input type="submit" th:value="${button}" />
           </div>
         </form>
-      </section>
-
-      <section>
-        <h1 th:text="${title}"></h1>
-        <table class="people-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>¿Viva?</th>
-              <th>Fecha de muerte</th>
-              <th>Detalles</th>
-              <th>Foto</th>
-              <th>Borrar</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr th:each="p : ${people}">
-              <td><a href="@{/view/} + ${p.id}" th:text="$#strings.abbreviate(p.id), 10"></a></td>
-              <td th:text="${p.id}"></td>
-              <td th:text="${p.name}"></td>
-              <td th:text="${p.isAlive}"></td>
-              <td th:text="${#calendars.format(p.deathDate, 'dd/MM/yyyy')}"></td>
-              <td th:text="${p.deathDetails}"></td>
-              <td>
-                <img
-                  th:if="${p.facePhoto}"
-                  th:src="@{/uploads/{filename}(filename=${p.facePhoto})}"
-                  alt="Foto"
-                  width="50"
-                />
-                <span th:unless="${p.facePhoto}">Sin foto</span>
-              </td>
-              <td>
-                <a
-                  th:href="@{/delete/{id}(id=${p.id})}"
-                  onclick="return confirm('¿Estás seguro de que quieres borrar a esta persona?');"
-                  >Borrar</a
-                >
-              </td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(people)}">
-              <td colspan="7">No hay personas escritas aún.</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section>
-        <h2>Death Notes Disponibles</h2>
-        <table class="deathnotes-table">
-          <thead>
-            <tr>
-              <th>ID Death Note</th>
-              <th>Shinigami ID</th>
-              <th>Dueño Humano ID</th>
-              <th>Acción</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr th:each="dn : ${deathNotes}">
-              <td th:text="${dn.id}"></td>
-              <td th:text="${dn.shinigamiId}"></td>
-              <td th:text="${dn.ownerId}"></td>
-              <td>
-                <a
-                  th:if="${dn.ownerId != null && !#strings.isEmpty(dn.ownerId)}"
-                  th:href="@{/deathnote/reject/{id}(id=${dn.id})}"
-                  onclick="return confirm('¿Estás seguro de renunciar a esta Death Note?');"
-                  >Rechazar Propiedad</a
-                >
-                <span
-                  th:unless="${dn.ownerId != null && !#strings.isEmpty(dn.ownerId)}"
-                  >Sin dueño humano</span
-                >
-              </td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(deathNotes)}">
-              <td colspan="4">No hay Death Notes disponibles.</td>
-            </tr>
-          </tbody>
-        </table>
       </section>
     </main>
   </body>

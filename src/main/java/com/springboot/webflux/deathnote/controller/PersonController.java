@@ -112,18 +112,16 @@ public class PersonController { // Considera renombrar a AppController o dividir
         }
         log.info("Mostrando página para anotar nombres en Death Note ID: {}", activeDeathNoteId);
         model.addAttribute("pageTitle", "Anotar Persona en Death Note");
-        model.addAttribute("activeDeathNoteId", activeDeathNoteId); // Para mostrarlo en la página si es necesario
-        model.addAttribute("person", new Person()); // Objeto vacío para el formulario th:object
+        model.addAttribute("activeDeathNoteId", activeDeathNoteId);
+        model.addAttribute("person", new Person());
         model.addAttribute("button", "Anotar Persona");
-        // No necesitas la lista de todas las Death Notes aquí, ya se seleccionó una.
-        return Mono.just("form"); // HTML con el formulario para añadir persona
+        return Mono.just("form");
     }
 
-    // --- 5. GUARDAR PERSONA (PROCESA EL FORMULARIO DE /anotarNombres) ---
-    @PostMapping("/persons/add") // Nueva ruta para guardar desde el formulario de anotar_nombres.html
+    @PostMapping("/persons/add")
     public Mono<String> savePerson(@Valid Person person, BindingResult result, Model model,
                                    @RequestParam(name = "file", required = false) FilePart file,
-                                   WebSession session, SessionStatus sessionStatus) { // SessionStatus para limpiar atributos de sesión si usas @SessionAttributes
+                                   WebSession session, SessionStatus sessionStatus) {
 
         String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
         if (activeDeathNoteId == null) {

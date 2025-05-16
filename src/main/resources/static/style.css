@@ -54,8 +54,8 @@ body {
     list-style-type: none; /* Elimina los puntos de la lista */
     display: flex; /* Coloca los elementos de la lista (li) en horizontal */
     padding: 0; /* Elimina el padding por defecto del ul */
-    margin: 0; /* Elimina el margen por defecto del ul */
-    gap: 2.5rem; /* Espacio entre los elementos de navegación (ej: 25px) */
+    margin: 0; 
+    gap: 2.5rem; 
 }
 
 .main-nav li {
@@ -166,51 +166,51 @@ body {
     margin: 0 auto;    /* Centra .main-content si tiene max-width */
 }
 
-.rules-page h1 {
+/* ... (Todo tu CSS existente: :root, *, html, .site-header, .main-content.rules-page, etc.) ... */
+
+.rules-page h1 { /* Tu H1 principal de la página de reglas */
     text-align: center;
-    font-size: 3.2rem; /* Un poco más grande */
-    margin-bottom: 3rem;
-    color: var(--primary-font-color); /* Asegurar color si es necesario */
+    font-size: 3.2rem;
+    margin-bottom: 4rem; /* Un poco más de espacio antes de las columnas de reglas */
+    color: var(--primary-font-color);
 }
 
 .rules-container {
-    display: grid; /* Usamos Grid para las columnas */
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Columnas responsivas */
-                                                              /* Crea columnas de al menos 300px, 
-                                                                 y se ajustan para llenar el espacio */
-    gap: 3rem; /* Espacio entre las secciones de reglas */
-    margin-bottom: 3rem; /* Espacio antes del botón continuar */
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* ESTA ES LA LÍNEA CLAVE: Dos columnas de igual ancho */
+    gap: 4rem; /* Aumentamos el espacio entre las columnas y filas de secciones */
+    margin-bottom: 4rem; /* Aumentamos el espacio antes del botón "Continuar" */
+}
+
+.rules-section {
+    /* Puedes añadir un padding interno a cada sección si quieres más "aire" alrededor del texto dentro de cada bloque */
+    /* padding: 1.5rem; */
+    /* background-color: #1A1A1A; */ /* Un fondo ligeramente diferente para cada sección si quieres */
+    /* border-radius: 4px; */
 }
 
 .rules-section h2 {
-    font-size: 2.2rem;
+    font-size: 2.2rem; /* O el tamaño que tenías y te gustaba */
+    /* font-family: "Roboto Condensed", sans-serif; */ /* Opcional: si quieres una fuente diferente para los subtítulos */
+    /* text-transform: uppercase; */ /* Opcional: para que los subtítulos estén en mayúsculas */
+    /* letter-spacing: 0.05em; */ /* Opcional */
     margin-bottom: 1.5rem;
-    border-bottom: 1px solid #444; /* Un separador sutil */
-    padding-bottom: 0.5rem;
-    color: var(--primary-font-color); /* Asegurar color */
+    border-bottom: 1px solid #444;
+    padding-bottom: 0.75rem; /* Ajusta el padding para el separador */
+    color: var(--primary-font-color);
 }
 
 .rules-section ol {
-    list-style-position: inside; /* Para que los números estén dentro del flujo del texto */
-    padding-left: 0; /* Quitamos el padding por defecto si list-style-position es inside */
+    list-style-position: inside;
+    padding-left: 0; /* O un padding pequeño como padding-left: 0.5rem; si el número se ve muy pegado */
 }
 
 .rules-section li {
-    font-size: 1.5rem; /* Tamaño base de las reglas */
-    line-height: 1.7;  /* Mejora la legibilidad */
-    margin-bottom: 1rem; /* Espacio entre cada regla */
-    text-align: left; /* Alineación izquierda para el texto de las reglas */
+    font-size: 1.5rem;
+    line-height: 1.7;
+    margin-bottom: 1.2rem; /* Un poco más de espacio entre ítems */
+    text-align: left;
+    /* color: #CFCFCF; */ /* Un gris ligeramente más claro si quieres diferenciar del --primary-font-color */
 }
 
-.rules-continue-button-container {
-    text-align: center; /* Centra el botón dentro de este div */
-    margin-top: 2rem;
-    margin-bottom: 3rem;
-}
-
-/* El botón .continue-button ya debería tener estilos de la página anterior.
-   Si necesitas un ancho específico aquí, puedes ajustarlo: */
-.rules-page .continue-button {
-    /* width: fit-content; */ /* Hereda el estilo anterior o ajusta */
-    /* padding: 1rem 3rem; */
-}
+/* ... (tus estilos para .rules-continue-button-container y .continue-button) ... */

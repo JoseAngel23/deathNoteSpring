@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+
+    <header>
+        
+    </header>
+
+    <main>
+        <section>
+        <h1 th:text="${title}"></h1>
+        <table class="people-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>¿Viva?</th>
+              <th>Fecha de muerte</th>
+              <th>Detalles</th>
+              <th>Foto</th>
+              <th>Borrar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="p : ${people}">
+              <td><a href="@{/view/} + ${p.id}" th:text="$#strings.abbreviate(p.id), 10"></a></td>
+              <td th:text="${p.id}"></td>
+              <td th:text="${p.name}"></td>
+              <td th:text="${p.isAlive}"></td>
+              <td th:text="${#calendars.format(p.deathDate, 'dd/MM/yyyy')}"></td>
+              <td th:text="${p.deathDetails}"></td>
+              <td>
+                <img
+                  th:if="${p.facePhoto}"
+                  th:src="@{/uploads/{filename}(filename=${p.facePhoto})}"
+                  alt="Foto"
+                  width="50"
+                />
+                <span th:unless="${p.facePhoto}">Sin foto</span>
+              </td>
+              <td>
+                <a
+                  th:href="@{/delete/{id}(id=${p.id})}"
+                  onclick="return confirm('¿Estás seguro de que quieres borrar a esta persona?');"
+                  >Borrar</a
+                >
+              </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(people)}">
+              <td colspan="7">No hay personas escritas aún.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+    
+</body>
+</html>
