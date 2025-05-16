@@ -386,35 +386,58 @@ public class PersonController { // Considera renombrar a AppController o dividir
                 }));
     }
 
+    // En PersonController.java
     @PostMapping("/persons/details/save")
     public Mono<String> saveDeathDetails(@ModelAttribute("person") Person personFromForm,
                                          BindingResult result,
-                                         @RequestParam(name = "explicitDeathDateStr", required = false) String explicitDeathDateStr, // Hazlo opcional
-                                         @RequestParam(name = "explicitDeathTimeStr", required = false) String explicitDeathTimeStr, // Hazlo opcional
-                                         Model model, WebSession session, SessionStatus sessionStatus) {
+                                         // Comenta temporalmente los @RequestParam para evitar que interfieran con el diagnóstico
+                                         // @RequestParam(name = "explicitDeathDateStr", required = false) String explicitDeathDateStrParam,
+                                         // @RequestParam(name = "explicitDeathTimeStr", required = false) String explicitDeathTimeStrParam,
+                                         Model model, WebSession session, SessionStatus sessionStatus,
+                                         ServerWebExchange exchange) { // Añade ServerWebExchange
 
-        String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
-        // Considera si necesitas validar activeDeathNoteId aquí también
+        return exchange.getFormData().flatMap(formData -> {
+            String explicitDeathDateStr = formData.getFirst("explicitDeathDateStr");
+            String explicitDeathTimeStr = formData.getFirst("explicitDeathTimeStr");
 
-        log.info("Guardando detalles de muerte para Persona ID: {}", personFromForm.getId());
-        // Usar el nombre correcto del parámetro en el log:
-        log.info("Datos recibidos - FechaStr: {}, HoraStr: {}, Detalles: {}, Causa: {}",
-                explicitDeathDateStr, explicitDeathTimeStr, personFromForm.getDeathDetails(), personFromForm.getCauseOfDeath());
+            log.info("--- INICIO DATOS FORMULARIO (ServerWebExchange) ---");
+            formData.forEach((key, values) -> {
+                log.info("FormData: Clave='{}', Valores='{}'", key, values);
+            });
+            log.info("Valor extraído para explicitDeathDateStr: '{}'", explicitDeathDateStr);
+            log.info("Valor extraído para explicitDeathTimeStr: '{}'", explicitDeathTimeStr);
+            log.info("--- FIN DATOS FORMULARIO ---");
 
-        LocalDateTime finalDeathDateTime = null;
+            // ... resto de tu lógica usando explicitDeathDateStr y explicitDeathTimeStr ...
+            // (La lógica de validación, parseo, etc.)
 
-        if (explicitDeathDateStr == null || explicitDeathDateStr.trim().isEmpty()) {
-            result.rejectValue("deathDate", "NotEmpty", "La fecha de muerte es obligatoria.");
-        }
-        if (explicitDeathTimeStr == null || explicitDeathTimeStr.trim().isEmpty()) {
-            // Asocia el error a un campo que tenga sentido, o a un campo general si es necesario.
-            // "deathDate" podría no ser el mejor campo si es solo para la hora, pero depende de tu objeto Person.
-            // Si tienes un campo específico para la hora en 'personFromForm' (aunque no lo uses para el binding directo de hora),
-            // podrías usar ese. Por ahora, lo dejo asociado a 'deathDate' para consistencia.
-            result.rejectValue("deathDate", "NotEmpty.time", "La hora de muerte es obligatoria.");
-        }
+            // Ejemplo de cómo seguiría:
+            String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
+            log.info("Guardando detalles de muerte para Persona ID: {}", personFromForm.getId());
+            log.info("Datos recibidos (desde formData) - FechaStr: {}, HoraStr: {}, Detalles: {}, Causa: {}",
+                    explicitDeathDateStr, explicitDeathTimeStr, personFromForm.getDeathDetails(), personFromForm.getCauseOfDeath());
 
-        if (!result.hasErrors()) {
+            LocalDateTime finalDeathDateTime = null;
+
+            if (explicitDeathDateStr == null || explicitDeathDateStr.trim().isEmpty()) {
+                result.rejectValue("deathDate", "NotEmpty", "La fecha de muerte es obligatoria.");
+            }
+            if (explicitDeathTimeStr == null || explicitDeathTimeStr.trim().isEmpty()) {
+                result.rejectValue("deathDate", "NotEmpty.time", "La hora de muerte es obligatoria.");
+            }
+            // ... (resto del método como lo tienes) ...
+
+            if (result.hasErrors()) {
+                log.warn("Errores de validación al guardar detalles de muerte para ID: {}. Errores: {}", personFromForm.getId(), result.getAllErrors());
+                model.addAttribute("person", personFromForm);
+                model.addAttribute("explicitDeathDateStrSubmitted", explicitDeathDateStr);
+                model.addAttribute("explicitDeathTimeStrSubmitted", explicitDeathTimeStr);
+                model.addAttribute("pageTitle", "Error - Detalles de Muerte para " + (personFromForm.getName() != null ? personFromForm.getName() : "ID: " + personFromForm.getId()));
+                model.addAttribute("errorMessage", "Por favor corrige los errores e inténtalo de nuevo.");
+                return Mono.just("details");
+            }
+
+            // Parseo
             try {
                 LocalDate datePart = LocalDate.parse(explicitDeathDateStr, DateTimeFormatter.ISO_LOCAL_DATE);
                 LocalTime timePart = LocalTime.parse(explicitDeathTimeStr, DateTimeFormatter.ISO_LOCAL_TIME);
@@ -422,43 +445,48 @@ public class PersonController { // Considera renombrar a AppController o dividir
                 log.info("Fecha y hora de muerte combinadas: {}", finalDeathDateTime);
             } catch (DateTimeParseException e) {
                 log.warn("Error al parsear fecha/hora: Date='{}', Time='{}' - Error: {}", explicitDeathDateStr, explicitDeathTimeStr, e.getMessage());
-                result.rejectValue("deathDate", "invalid.datetime", "Formato de fecha u hora inválido. Use YYYY-MM-DD y HH:mm.");
+                result.rejectValue("deathDate", "invalid.datetime", "Formato de fecha u hora inválido. Use yyyy-MM-dd y HH:mm.");
+            } catch (NullPointerException npe){ // Si explicitDeathDateStr o explicitDeathTimeStr son null después de la validación
+                log.warn("NPE al parsear fecha/hora, uno de los strings de fecha/hora es null (esto no debería pasar si la validación anterior funciona).");
+                if (!result.hasFieldErrors("deathDate")) { // Solo añadir si no hay otro error más específico
+                    result.rejectValue("deathDate", "invalid.datetime", "Fecha y hora deben ser proporcionadas y válidas.");
+                }
             }
-        }
 
-        if (result.hasErrors()) {
-            log.warn("Errores de validación al guardar detalles de muerte para ID: {}", personFromForm.getId());
-            // Asegúrate que 'personFromForm' tiene los datos necesarios para repopular el formulario
-            // o recarga la persona original y aplica los cambios del formulario para mostrar.
-            model.addAttribute("person", personFromForm);
-            model.addAttribute("pageTitle", "Error - Detalles de Muerte para " + (personFromForm.getName() != null ? personFromForm.getName() : "ID: " + personFromForm.getId()));
-            model.addAttribute("errorMessage", "Por favor corrige los errores e inténtalo de nuevo.");
-            return Mono.just("details");
-        }
+            // Si después del parseo hubo errores, volver al formulario
+            if (result.hasErrors()) {
+                log.warn("Errores después del parseo al guardar detalles de muerte para ID: {}. Errores: {}", personFromForm.getId(), result.getAllErrors());
+                model.addAttribute("person", personFromForm);
+                model.addAttribute("explicitDeathDateStrSubmitted", explicitDeathDateStr);
+                model.addAttribute("explicitDeathTimeStrSubmitted", explicitDeathTimeStr);
+                model.addAttribute("pageTitle", "Error - Detalles de Muerte para " + (personFromForm.getName() != null ? personFromForm.getName() : "ID: " + personFromForm.getId()));
+                model.addAttribute("errorMessage", "Por favor corrige los errores e inténtalo de nuevo.");
+                return Mono.just("details");
+            }
 
-        // Llamar al nuevo método del servicio
-        return personService.specifyDeath(personFromForm.getId(), finalDeathDateTime, personFromForm.getDeathDetails(), personFromForm.getCauseOfDeath())
-                .doOnSuccess(updatedPerson -> {
-                    log.info("Detalles de muerte actualizados para {} (ID: {}).", updatedPerson.getName(), updatedPerson.getId());
-                    // sessionStatus.setComplete(); // Descomenta si usas @SessionAttributes("person") a nivel de clase
-                })
-                .thenReturn("redirect:/listNames?success=" + encodeURL("Detalles de muerte actualizados para '" + personFromForm.getName() + "'."))
-                .onErrorResume(e -> {
-                    log.error("Error al actualizar detalles de muerte para ID {}: {}", personFromForm.getId(), e.getMessage(), e);
-                    // Recargar la persona original para mostrar el formulario con datos consistentes
-                    return personService.findById(personFromForm.getId())
-                            .defaultIfEmpty(personFromForm) // Fallback al objeto del formulario si no se encuentra
-                            .flatMap(originalPerson -> {
-                                model.addAttribute("person", originalPerson);
-                                model.addAttribute("pageTitle", "Error - Detalles de Muerte para " + originalPerson.getName());
-                                model.addAttribute("errorMessage", "Error al guardar los detalles: " + e.getMessage());
-                                // Para que los valores incorrectos que el usuario intentó enviar se muestren de nuevo:
-                                model.addAttribute("explicitDeathDateStrSubmitted", explicitDeathDateStr);
-                                model.addAttribute("explicitDeathTimeStrSubmitted", explicitDeathTimeStr);
-                                model.addAttribute("submittedDeathDetails", personFromForm.getDeathDetails());
-                                model.addAttribute("submittedCauseOfDeath", personFromForm.getCauseOfDeath());
-                                return Mono.just("details");
-                            });
-                });
+            // Si todo OK, proceder a guardar
+            return personService.specifyDeath(personFromForm.getId(), finalDeathDateTime, personFromForm.getDeathDetails(), personFromForm.getCauseOfDeath())
+                    .doOnSuccess(updatedPerson -> {
+                        log.info("Detalles de muerte actualizados para {} (ID: {}).", updatedPerson.getName(), updatedPerson.getId());
+                    })
+                    .thenReturn("redirect:/listNames?success=" + encodeURL("Detalles de muerte actualizados para '" + personFromForm.getName() + "'."))
+                    .onErrorResume(e -> {
+                        log.error("Error al actualizar detalles de muerte para ID {}: {}", personFromForm.getId(), e.getMessage(), e);
+                        return personService.findById(personFromForm.getId())
+                                .defaultIfEmpty(personFromForm)
+                                .flatMap(originalPerson -> {
+                                    model.addAttribute("person", originalPerson);
+                                    model.addAttribute("explicitDeathDateStrSubmitted", explicitDeathDateStr);
+                                    model.addAttribute("explicitDeathTimeStrSubmitted", explicitDeathTimeStr);
+                                    if (originalPerson != personFromForm) {
+                                        model.addAttribute("submittedDeathDetails", personFromForm.getDeathDetails());
+                                        model.addAttribute("submittedCauseOfDeath", personFromForm.getCauseOfDeath());
+                                    }
+                                    model.addAttribute("pageTitle", "Error - Detalles de Muerte para " + originalPerson.getName());
+                                    model.addAttribute("errorMessage", "Error al guardar los detalles: " + e.getMessage());
+                                    return Mono.just("details");
+                                });
+                    });
+        });
     }
 }
