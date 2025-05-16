@@ -1,69 +1,158 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reglas de la Death Note</title>
-    <link rel="stylesheet" href="style.css" />
-    <link rel\="preconnect" href\="https\://fonts\.googleapis\.com" /\> <link
-    rel\="preconnect" href\="https\://fonts\.gstatic\.com" crossorigin /\> <link
-    href\="https\://fonts\.googleapis\.com/css2?family\=EB\+Garamond\:ital,wght@0,400\.\.800;1,400\.\.800&family\=Roboto\+Condensed\:ital@0;1&display\=swap"
-    rel\="stylesheet" /\> <link rel\="stylesheet" th\:href\="@\{/style\.css\}"
-    /\>
+    <title
+      th:text="${pageTitle != null ? pageTitle : 'Reglas de la Death Note'}"
+    >
+      Reglas de la Death Note
+    </title>
+
+    <link rel="stylesheet" th:href="@{/style.css}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Roboto+Condensed:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
   </head>
-<body>
+  <body>
     <header class="site-header">
-        <div class="logo-container">
-            <img src="./assets/deathNoteWhite.png" alt="Logo Death Note" /> </div>
-        <nav class="main-nav">
-            <ul>
-                <li><a href="index.html">Lista de Death Notes</a></li> <li><a href="rules.html">Reglas</a></li> <li><a href="#">Anotar nombres</a></li>
-                <li><a href="#">Listado de nombres</a></li>
-            </ul>
-        </nav>
+      <div class="logo-container">
+        <img th:src="@{/assets/deathNoteWhite.png}" alt="Logo Death Note" />
+      </div>
+      <nav class="main-nav">
+        <ul>
+          <li><a th:href="@{/}">Seleccionar Death Note</a></li>
+          <li><a th:href="@{/rules}">Reglas</a></li>
+          <li><a th:href="@{/anotarNombres}">Anotar nombres</a></li>
+          <li><a th:href="@{/listadoNombres}">Listado de nombres</a></li>
+        </ul>
+      </nav>
     </header>
 
-    <main class="main-content rules-page"> <h1>Reglas de la Aplicación Death Note</h1>
+    <main class="main-content rules-page">
+      <h1>Reglas de la Aplicación Death Note</h1>
+      <div class="rules-container">
+        <section class="rules-section">
+          <h2>Principios Fundamentales de Uso</h2>
+          <ol>
+            <li>
+              El ser humano cuyo nombre sea ingresado en esta aplicación,
+              morirá.
+            </li>
+            <li>
+              Esta aplicación no surtirá efecto a menos que quien ingrese el
+              nombre tenga el rostro de la persona en mente al hacerlo. De esta
+              manera, no se verán afectadas las personas que compartan el mismo
+              nombre.
+            </li>
+            <li>
+              Si la causa de la muerte se especifica antes de que transcurran 40
+              segundos desde que se ingresó el nombre de la víctima, dicha causa
+              se cumplirá.
+            </li>
+            <li>
+              Si no se especifica una causa de muerte, la víctima morirá de un
+              ataque cardíaco pasados 40 segundos desde la anotación de su
+              nombre en la aplicación.
+            </li>
+            <li>
+              Una vez especificada la causa de muerte, se dispone de un plazo de
+              6 minutos y 40 segundos (es decir, 400 segundos) para detallar las
+              circunstancias precisas de la misma.
+            </li>
+          </ol>
+        </section>
 
-        <div class="rules-container">
-            <section class="rules-section">
-                <h2>Principios Fundamentales de Uso</h2>
-                <ol>
-                    <li>El ser humano cuyo nombre sea ingresado en esta aplicación, morirá.</li>
-                    <li>Esta aplicación no surtirá efecto a menos que quien ingrese el nombre tenga el rostro de la persona en mente al hacerlo. De esta manera, no se verán afectadas las personas que compartan el mismo nombre.</li>
-                    <li>Si la causa de la muerte se especifica antes de que transcurran 40 segundos desde que se ingresó el nombre de la víctima, dicha causa se cumplirá.</li>
-                    <li>Si no se especifica una causa de muerte, la víctima morirá de un ataque cardíaco pasados 40 segundos desde la anotación de su nombre en la aplicación.</li>
-                    <li>Una vez especificada la causa de muerte, se dispone de un plazo de 6 minutos y 40 segundos (es decir, 400 segundos) para detallar las circunstancias precisas de la misma.</li>
-                </ol>
-            </section>
+        <section class="rules-section">
+          <h2>El Propietario, el Shinigami y el Destino</h2>
+          <ol start="6">
+            <li>
+              El ser humano que se convierta en propietario de esta aplicación
+              podrá ver y oír al Shinigami que originalmente era dueño del
+              sistema asociado a ella. Este Shinigami acompañará al propietario
+              humano hasta que este muera, renuncie a la aplicación o esta sea
+              desactivada.
+            </li>
+            <li>
+              El humano que utilice esta aplicación no podrá ir ni al Cielo ni
+              al Infierno tras su muerte. El lugar al que van quienes usan la
+              aplicación es el Mu (la Nada).
+            </li>
+            <li>
+              El propietario de la aplicación no puede matarse a sí mismo
+              utilizándola; ingresar su propio nombre no tendrá efecto alguno.
+            </li>
+          </ol>
+        </section>
 
-            <section class="rules-section">
-                <h2>El Propietario, el Shinigami y el Destino</h2>
-                <ol start="6"> <li>El ser humano que se convierta en propietario de esta aplicación podrá ver y oír al Shinigami que originalmente era dueño del sistema asociado a ella. Este Shinigami acompañará al propietario humano hasta que este muera, renuncie a la aplicación o esta sea desactivada.</li>
-                    <li>El humano que utilice esta aplicación no podrá ir ni al Cielo ni al Infierno tras su muerte. El lugar al que van quienes usan la aplicación es el Mu (la Nada).</li>
-                    <li>El propietario de la aplicación no puede matarse a sí mismo utilizándola; ingresar su propio nombre no tendrá efecto alguno.</li>
-                </ol>
-            </section>
+        <section class="rules-section">
+          <h2>Pérdida de Posesión y Consecuencias en la Memoria</h2>
+          <ol start="9">
+            <li>
+              Si el propietario de la aplicación pierde acceso a ella, o si sus
+              credenciales son robadas, y no recupera el control en un plazo de
+              490 días, perderá irrevocablemente la titularidad sobre dicha
+              aplicación.
+            </li>
+            <li>
+              Al renunciar voluntariamente a la posesión de la aplicación, o si
+              pierde la titularidad según la regla anterior, el humano perderá
+              todos los recuerdos asociados con dicha aplicación. Esto incluye
+              cualquier conocimiento sobre la aplicación misma y la existencia
+              del Shinigami vinculado a ella. No obstante, los recuerdos de su
+              vida anteriores a la obtención del acceso a la aplicación
+              permanecerán intactos.
+            </li>
+            <li>
+              Los recuerdos perdidos referentes a la aplicación pueden ser
+              recuperados en su totalidad al volver a interactuar con la
+              interfaz de la aplicación a la que se renunció o cuyo acceso fue
+              perdido, incluso si ya no se es el propietario de la misma. Si se
+              recupera la titularidad, los recuerdos también serán restaurados.
+            </li>
+          </ol>
+        </section>
 
-            <section class="rules-section">
-                <h2>Pérdida de Posesión y Consecuencias en la Memoria</h2>
-                <ol start="9"> <li>Si el propietario de la aplicación pierde acceso a ella, o si sus credenciales son robadas, y no recupera el control en un plazo de 490 días, perderá irrevocablemente la titularidad sobre dicha aplicación.</li>
-                    <li>Al renunciar voluntariamente a la posesión de la aplicación, o si pierde la titularidad según la regla anterior, el humano perderá todos los recuerdos asociados con dicha aplicación. Esto incluye cualquier conocimiento sobre la aplicación misma y la existencia del Shinigami vinculado a ella. No obstante, los recuerdos de su vida anteriores a la obtención del acceso a la aplicación permanecerán intactos.</li>
-                    <li>Los recuerdos perdidos referentes a la aplicación pueden ser recuperados en su totalidad al volver a interactuar con la interfaz de la aplicación a la que se renunció o cuyo acceso fue perdido, incluso si ya no se es el propietario de la misma. Si se recupera la titularidad, los recuerdos también serán restaurados.</li>
-                </ol>
-            </section>
+        <section class="rules-section">
+          <h2>Capacidades Adicionales y Limitaciones</h2>
+          <ol start="12">
+            <li>
+              Es posible detallar la hora exacta de la muerte. Asimismo, se
+              pueden manipular las acciones de la víctima previas a su
+              fallecimiento, siempre y cuando estas acciones sean físicamente
+              posibles para dicha persona y no impliquen directamente la muerte
+              de terceros o acorten sus vidas al usar la aplicación.
+            </li>
+            <li>
+              El propietario de la aplicación puede realizar un pacto con el
+              Shinigami dueño original del sistema para obtener los "Ojos de
+              Shinigami". Este trato requiere que el humano ceda la mitad de su
+              esperanza de vida restante. A cambio, con los Ojos de Shinigami,
+              el humano podrá ver el nombre completo y la esperanza de vida
+              original de cualquier otra persona con solo mirar su rostro
+              (funcionalidad no implementada en esta versión de la aplicación).
+            </li>
+            <li>
+              Un Shinigami no tiene la obligación inherente de explicar todas
+              las reglas o pormenores del uso de la aplicación al humano que la
+              encuentre o la reciba.
+            </li>
+          </ol>
+        </section>
+      </div>
 
-            <section class="rules-section">
-                <h2>Capacidades Adicionales y Limitaciones</h2>
-                <ol start="12"> <li>Es posible detallar la hora exacta de la muerte. Asimismo, se pueden manipular las acciones de la víctima previas a su fallecimiento, siempre y cuando estas acciones sean físicamente posibles para dicha persona y no impliquen directamente la muerte de terceros o acorten sus vidas al usar la aplicación.</li>
-                    <li>El propietario de la aplicación puede realizar un pacto con el Shinigami dueño original del sistema para obtener los "Ojos de Shinigami". Este trato requiere que el humano ceda la mitad de su esperanza de vida restante. A cambio, con los Ojos de Shinigami, el humano podrá ver el nombre completo y la esperanza de vida original de cualquier otra persona con solo mirar su rostro (funcionalidad no implementada en esta versión de la aplicación).</li>
-                    <li>Un Shinigami no tiene la obligación inherente de explicar todas las reglas o pormenores del uso de la aplicación al humano que la encuentre o la reciba.</li>
-                </ol>
-            </section>
-        </div> <div class="rules-continue-button-container">
-            <button type="button" class="continue-button" onclick="window.location.href='index.html'">Continuar</button> 
-            </div>
-
+      <div class="rules-continue-button-container">
+        <button
+          type="button"
+          class="continue-button"
+          th:onclick="|window.location.href='@{/anotarNombres}'|"
+        >
+          Entendido, continuar a anotar nombres
+        </button>
+      </div>
     </main>
-</body>
+  </body>
 </html>

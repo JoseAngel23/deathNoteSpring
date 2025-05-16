@@ -3,25 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Elige tu Death Note</title>
-    <link rel="stylesheet" href="style.css" />
-    <link rel\="preconnect" href\="https\://fonts\.googleapis\.com" /\> <link
-    rel\="preconnect" href\="https\://fonts\.gstatic\.com" crossorigin /\> <link
-    href\="https\://fonts\.googleapis\.com/css2?family\=EB\+Garamond\:ital,wght@0,400\.\.800;1,400\.\.800&family\=Roboto\+Condensed\:ital@0;1&display\=swap"
-    rel\="stylesheet" /\> <link rel\="stylesheet" th\:href\="@\{/style\.css\}"
-    /\>
+    <title th:text="${pageTitle != null ? pageTitle : 'Elige tu Death Note'}">
+      Elige tu Death Note
+    </title>
+    <link rel="stylesheet" th:href="@{/style.css}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Roboto+Condensed:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <header class="site-header">
       <div class="logo-container">
-        <img src="./assets/deathNoteWhite.png" alt="Logo Death Note" />
+        <img th:src="@{/assets/deathNoteWhite.png}" alt="Logo Death Note" />
       </div>
       <nav class="main-nav">
         <ul>
-          <li><a href="#">Lista de Death Notes</a></li>
-          <li><a href="#">Reglas</a></li>
-          <li><a href="#">Anotar nombres</a></li>
-          <li><a href="#">Listado de nombres</a></li>
+          <li><a th:href="@{/}">Seleccionar Death Note</a></li>
+          <li><a th:href="@{/rules}">Reglas</a></li>
         </ul>
       </nav>
     </header>
@@ -32,18 +33,36 @@
 
         <form
           id="deathNoteSelectionForm"
-          action="/ruta-a-procesar-seleccion"
+          th:action="@{/processDeathNoteSelection}"
           method="POST"
         >
           <div class="form-group">
-            <label for="deathNoteSelect" class="visually-hidden">Death Notes disponibles</label>
-            <select name="selectedDeathNote" id="deathNoteSelect" required>
-              <option value="" disabled selected>Título</option>
-              <option value="dn_ryuk">Death Note de Ryuk</option>
+            <label for="deathNoteSelect" class="visually-hidden"
+              >Death Notes disponibles:</label
+            >
+
+            <select name="selectedDeathNoteId" id="deathNoteSelect" required>
+              <option value="" disabled>-- Selecciona una Death Note --</option>
+              <th:block th:if="${deathNotes != null}">
+                <option
+                  th:each="dn : ${deathNotes}"
+                  th:value="${dn.id}"
+                  th:text="'Death Note de Ryuk (ID: ' + dn.id + ')' + (dn.shinigamiId != null ? ' - Shinigami: ' + dn.shinigamiId : '')"
+                ></option>
+              </th:block>
+              <option
+                th:if="${deathNotes == null or #lists.isEmpty(deathNotes)}"
+                value=""
+                disabled
+              >
+                No hay Death Notes disponibles para seleccionar.
+              </option>
             </select>
           </div>
 
-          <button type="submit" class="continue-button">Continuar</button>
+          <button type="submit" class="continue-button">
+            Continuar con esta Death Note
+          </button>
         </form>
       </section>
     </main>
