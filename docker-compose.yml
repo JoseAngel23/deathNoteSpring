@@ -1,0 +1,43 @@
+version: '3.8' # Especifica la versión del formato de Docker Compose
+
+services:
+  # Servicio para MongoDB
+  mongodb:
+    image: mongo:6.0 # Puedes usar mongo:latest o una versión específica
+    container_name: death-note-mongo-db
+    ports:
+      - "27017:27017" # Mapea el puerto 27017 del contenedor al puerto 27017 de tu máquina host (opcional, para acceso externo)
+    volumes:
+      - mongo_data:/data/db # Persiste los datos de MongoDB en un volumen nombrado
+    networks:
+      - deathnote-network
+
+  # Servicio para tu aplicación Spring Boot
+  death-note-app:
+    build: . # Construye la imagen usando el Dockerfile en el directorio actual (.)
+    container_name: death-note-java-app
+    ports:
+      - "8080:8080" # Mapea el puerto 8080 del contenedor al puerto 8080 de tu máquina host
+    environment:
+      # Puedes pasar variables de entorno aquí si es necesario.
+      # La URI de MongoDB ya está en application.properties apuntando a 'mongodb'
+      # Si quisieras sobrescribirla desde aquí, podrías hacer:
+      # SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/death_note_compose
+      SPRING_PROFILES_ACTIVE: docker # Opcional: para cargar un perfil específico de Spring (application-docker.properties)
+    depends_on:
+      - mongodb # Asegura que el servicio 'mongodb' se inicie antes que 'death-note-app'
+    volumes:
+      # Mapea un directorio en tu máquina host al directorio de subidas dentro del contenedor
+      # Crea un directorio 'my-uploads' en la raíz de tu proyecto o usa una ruta absoluta
+      - ./my-uploads:/app/uploads
+    networks:
+      - deathnote-network
+
+# Define las redes personalizadas
+networks:
+  deathnote-network:
+    driver: bridge # La red bridge es la predeterminada y adecuada para la mayoría de los casos
+
+# Define los volúmenes nombrados (para persistencia de datos)
+volumes:
+  mongo_data: # Este volumen almacenará los datos de MongoDB
