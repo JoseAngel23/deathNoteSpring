@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.function.Consumer;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-// Considera añadir @ActiveProfiles("test") si tienes una configuración de BD específica para pruebas
 class DeathNoteApplicationTests {
 
     @Autowired
@@ -39,21 +38,17 @@ class DeathNoteApplicationTests {
     @Autowired
     private PersonRepository personRepository;
 
-    private String testDeathNoteId; // Usado para la DeathNote creada en setUp
+    private String testDeathNoteId;
 
     @BeforeEach
     void setUp() {
-        // Limpiar datos ANTES de cada prueba para asegurar un estado limpio.
-        // ¡¡¡CUIDADO!!! Esto borra datos. Asegúrate de que tu configuración de prueba
-        // NO apunte a una base de datos de producción o desarrollo importante.
-        // Es mejor usar una base de datos en memoria o una BD de prueba dedicada.
         System.out.println("SETUP: Limpiando colecciones Person y DeathNote...");
         personRepository.deleteAll().block(Duration.ofSeconds(10));
         deathNoteRepository.deleteAll().block(Duration.ofSeconds(10));
         System.out.println("SETUP: Colecciones limpiadas.");
 
-        DeathNote testNote = new DeathNote("test-shinigami-setup", null); // Asume constructor (shinigamiId, ownerId)
-        DeathNote savedNote = deathNoteRepository.save(testNote).block(Duration.ofSeconds(10)); // .block() es aceptable en setup
+        DeathNote testNote = new DeathNote("test-shinigami-setup", null);
+        DeathNote savedNote = deathNoteRepository.save(testNote).block(Duration.ofSeconds(10));
 
         Assertions.assertThat(savedNote).isNotNull();
         Assertions.assertThat(savedNote.getId()).isNotNull();
@@ -63,7 +58,6 @@ class DeathNoteApplicationTests {
 
     @AfterEach
     void tearDown() {
-        // Limpiar datos DESPUÉS de cada prueba también es una buena práctica para aislamiento.
         System.out.println("TEARDOWN: Limpiando colecciones Person y DeathNote...");
         personRepository.deleteAll().block(Duration.ofSeconds(10));
         deathNoteRepository.deleteAll().block(Duration.ofSeconds(10));
@@ -72,10 +66,9 @@ class DeathNoteApplicationTests {
 
     @Test
     void listNames_shouldReturnListView_withHtmlContentType() {
-        // Crear una persona de prueba para que la lista no esté vacía
         Person testPerson = new Person();
         testPerson.setName("Test List Person");
-        testPerson.setDeathNoteId(testDeathNoteId); // Asociarla a la DN de prueba
+        testPerson.setDeathNoteId(testDeathNoteId);
         personRepository.save(testPerson).block(Duration.ofSeconds(5));
 
         webClient.get().uri("/listNames")
@@ -89,14 +82,12 @@ class DeathNoteApplicationTests {
                     Assertions.assertThat(htmlBody).isNotNull();
                     Assertions.assertThat(htmlBody).contains("<title>Listado de Personas Anotadas</title>");
                     Assertions.assertThat(htmlBody).contains("<h1>Listado de Personas Anotadas</h1>");
-                    // Tu controlador convierte nombres a mayúsculas para esta vista
                     Assertions.assertThat(htmlBody).contains("TEST LIST PERSON");
                 });
     }
 
     @Test
     void showSelectDeathNotePage_whenDeathNotesExist_shouldReturnIndexView() {
-        // El @BeforeEach ya asegura que existe 'testDeathNoteId'
         webClient.get().uri("/")
                 .accept(MediaType.TEXT_HTML)
                 .exchange()
@@ -108,14 +99,12 @@ class DeathNoteApplicationTests {
                     Assertions.assertThat(htmlBody).isNotNull();
                     Assertions.assertThat(htmlBody).contains("<title>Elige tu Death Note</title>");
                     Assertions.assertThat(htmlBody).contains("<h1>Elige la Death Note</h1>");
-                    // Verifica que el ID de la DeathNote de prueba esté en las opciones del select
                     Assertions.assertThat(htmlBody).contains("value=\"" + testDeathNoteId + "\"");
                 });
     }
 
     @Test
     void createPersonInDeathNote_withValidNameAndActiveSession_shouldRedirectToListView() {
-        // --- Parte 1: Simular la selección de una Death Note para establecer la sesión ---
         EntityExchangeResult<byte[]> sessionSetupResult = webClient.post().uri("/processDeathNoteSelection")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters.fromFormData("selectedDeathNoteId", testDeathNoteId))
@@ -134,23 +123,21 @@ class DeathNoteApplicationTests {
             }
         };
 
-        // --- Parte 2: Enviar el formulario para añadir una persona ---
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         String personName = "Kira Test Create";
         formData.add("name", personName);
 
         webClient.post().uri("/persons/add")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .headers(cookieSetter) // Aplicar cookie de sesión
+                .headers(cookieSetter)
                 .body(BodyInserters.fromFormData(formData))
                 .exchange()
                 .expectStatus().is3xxRedirection()
                 .expectHeader().valueMatches(HttpHeaders.LOCATION, "/listNames\\?success=.*")
                 .expectBody(Void.class);
 
-        // (Opcional) Verificar que la persona fue creada en la BD
         Person foundPerson = personRepository.findAll()
-                .filter(p -> p.getName().equals(personName)) // Busca por el nombre original
+                .filter(p -> p.getName().equals(personName))
                 .next()
                 .block(Duration.ofSeconds(5));
         Assertions.assertThat(foundPerson).isNotNull();
@@ -159,7 +146,6 @@ class DeathNoteApplicationTests {
 
     @Test
     void addDeathDetails_afterCreatePersonInDeathNote_shouldUpdatePersonAndRedirect() {
-        // --- Parte 1: Seleccionar Death Note (establecer sesión) ---
         EntityExchangeResult<byte[]> sessionSetupResult = webClient.post().uri("/processDeathNoteSelection")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters.fromFormData("selectedDeathNoteId", testDeathNoteId))
@@ -175,7 +161,6 @@ class DeathNoteApplicationTests {
             if (sessionCookie != null) headers.add(HttpHeaders.COOKIE, sessionCookie);
         };
 
-        // --- Parte 2: Crear una Persona ---
         MultiValueMap<String, String> createPersonFormData = new LinkedMultiValueMap<>();
         String personNameToCreate = "VictimForDetails-" + System.currentTimeMillis();
         createPersonFormData.add("name", personNameToCreate);
@@ -187,10 +172,10 @@ class DeathNoteApplicationTests {
                 .exchange()
                 .expectStatus().is3xxRedirection()
                 .expectHeader().valueMatches(HttpHeaders.LOCATION, "/listNames\\?success=.*")
-                .expectBody(Void.class).returnResult(); // Consumir para asegurar que la llamada se complete
+                .expectBody(Void.class).returnResult();
 
-        // --- Parte 3: Obtener el ID de la Persona recién creada ---
-        String searchName = personNameToCreate; // Buscar por el nombre original
+
+        String searchName = personNameToCreate;
         Person createdPerson = personRepository.findAll()
                 .filter(p -> p.getName().equals(searchName))
                 .next()
@@ -200,12 +185,8 @@ class DeathNoteApplicationTests {
         String personIdToUpdate = createdPerson.getId();
         System.out.println("TEST (addDeathDetails): Persona creada con ID '" + personIdToUpdate + "' y nombre '" + createdPerson.getName() + "'");
 
-        // --- Parte 4: Enviar el formulario de detalles de muerte ---
         MultiValueMap<String, String> deathDetailsFormData = new LinkedMultiValueMap<>();
-        deathDetailsFormData.add("id", personIdToUpdate); // Enviar ID para que @ModelAttribute sepa qué Person es
-        // Los otros campos de Person (name, alive, etc.) se obtendrán de la BD en el controlador
-        // o se poblarán en personFromForm por @ModelAttribute si los envías,
-        // pero para `specifyDeath` solo necesitas el ID y los nuevos detalles.
+        deathDetailsFormData.add("id", personIdToUpdate);
 
         String explicitDate = LocalDate.now().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE);
         String explicitTime = LocalTime.of(10, 30).format(DateTimeFormatter.ISO_LOCAL_TIME);
@@ -214,7 +195,6 @@ class DeathNoteApplicationTests {
         deathDetailsFormData.add("explicitDeathDateStr", explicitDate);
         deathDetailsFormData.add("explicitDeathTimeStr", explicitTime);
         deathDetailsFormData.add("deathDetails", detailsText);
-        // deathDetailsFormData.add("causeOfDeath", "Impacto"); // Si lo has eliminado, no lo envíes
 
         webClient.post().uri("/persons/details/save")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -225,7 +205,6 @@ class DeathNoteApplicationTests {
                 .expectHeader().valueMatches(HttpHeaders.LOCATION, "/listNames\\?success=.*Detalles\\+de\\+muerte\\+actualizados.*")
                 .expectBody(Void.class);
 
-        // --- Parte 5: Verificar que los datos se guardaron correctamente en la BD ---
         Person updatedPerson = personRepository.findById(personIdToUpdate).block(Duration.ofSeconds(5));
         Assertions.assertThat(updatedPerson).isNotNull();
         Assertions.assertThat(updatedPerson.getDeathDetails()).isEqualTo(detailsText);
@@ -235,10 +214,8 @@ class DeathNoteApplicationTests {
         Assertions.assertThat(updatedPerson.getDeathDate()).as("DeathDate real no debería estar seteada aún para muerte futura").isNull();
     }
 
-    // --- PRUEBA PARA BORRAR PERSONA ---
     @Test
     void deletePerson_shouldRemovePersonAndRedirect() {
-        // --- Parte 1: Establecer sesión ---
         EntityExchangeResult<byte[]> sessionSetupResult = webClient.post().uri("/processDeathNoteSelection")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters.fromFormData("selectedDeathNoteId", testDeathNoteId))
@@ -254,12 +231,11 @@ class DeathNoteApplicationTests {
             if (sessionCookie != null) headers.add(HttpHeaders.COOKIE, sessionCookie);
         };
 
-        // --- Parte 2: Crear una Persona para luego borrarla ---
         MultiValueMap<String, String> createPersonFormData = new LinkedMultiValueMap<>();
         String personNameToDelete = "VictimToDelete-" + System.currentTimeMillis();
         createPersonFormData.add("name", personNameToDelete);
 
-        webClient.post().uri("/persons/add") // Llama al endpoint de creación
+        webClient.post().uri("/persons/add")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .headers(cookieSetter)
                 .body(BodyInserters.fromFormData(createPersonFormData))
@@ -268,9 +244,8 @@ class DeathNoteApplicationTests {
                 .expectHeader().valueMatches(HttpHeaders.LOCATION, "/listNames\\?success=.*")
                 .expectBody(Void.class).returnResult();
 
-        // --- Parte 3: Obtener el ID de la Persona recién creada ---
         Person personToDelete = personRepository.findAll()
-                .filter(p -> p.getName().equals(personNameToDelete)) // Busca por el nombre original
+                .filter(p -> p.getName().equals(personNameToDelete))
                 .next()
                 .block(Duration.ofSeconds(10));
 
@@ -279,15 +254,14 @@ class DeathNoteApplicationTests {
         System.out.println("TEST (deletePerson): Persona a borrar con ID '" + personIdToDelete + "' y nombre '" + personToDelete.getName() + "'");
 
         // --- Parte 4: Llamar al endpoint de borrado ---
-        webClient.get().uri("/delete/{id}", personIdToDelete) // GET a /delete/{id}
-                .accept(MediaType.TEXT_HTML) // Aunque sea redirección, el origen podría servir HTML
-                .headers(cookieSetter) // Enviar cookie de sesión si el endpoint de borrado la requiere
+        webClient.get().uri("/delete/{id}", personIdToDelete)
+                .accept(MediaType.TEXT_HTML)
+                .headers(cookieSetter)
                 .exchange()
                 .expectStatus().is3xxRedirection()
                 .expectHeader().valueMatches(HttpHeaders.LOCATION, "/listNames\\?success=.*eliminada.*")
                 .expectBody(Void.class);
 
-        // --- Parte 5: Verificar que la persona fue eliminada de la BD ---
         Boolean personExists = personRepository.existsById(personIdToDelete).block(Duration.ofSeconds(5));
         Assertions.assertThat(personExists).isFalse();
     }
