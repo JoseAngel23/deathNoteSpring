@@ -19,7 +19,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.server.ServerWebExchange;
-import org.springframework.web.server.WebSession; // Importar WebSession
+import org.springframework.web.server.WebSession;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -56,6 +56,7 @@ public class PersonController {
         this.personService = personService;
         this.deathNoteService = deathNoteService;
     }
+    // ... (otros mappings sin cambios significativos para este problema)
 
     @GetMapping("/")
     public Mono<String> showSelectDeathNotePage(Model model) {
@@ -122,7 +123,6 @@ public class PersonController {
     public Mono<String> handleFileUploadTest(@RequestParam(name = "file", required = false) FilePart filePart) {
         if (filePart != null) {
             log.info("[TEST UPLOAD] Archivo recibido: {}, tamaño: {}", filePart.filename(), filePart.headers().getContentLength());
-
             return Mono.just("Archivo recibido: " + filePart.filename());
         } else {
             log.info("[TEST UPLOAD] FilePart es NULO.");
@@ -137,7 +137,6 @@ public class PersonController {
                                    WebSession session, SessionStatus sessionStatus) {
 
         final Person person = personInput;
-
         String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
         if (activeDeathNoteId == null) {
             log.warn("No hay Death Note activa en sesión al guardar persona. Redirigiendo.");
@@ -164,11 +163,11 @@ public class PersonController {
             model.addAttribute("pageTitle", "Error al Anotar Persona");
             model.addAttribute("button", "Reintentar Anotar");
             model.addAttribute("activeDeathNoteId", activeDeathNoteId);
+            model.addAttribute("person", personInput);
             return Mono.just("form");
         }
 
         Mono<Void> photoProcessingMono;
-
         boolean processFile = (file != null && file.filename() != null && !file.filename().isEmpty());
         log.info("¿Se procesará el archivo? : {}", processFile);
 
@@ -193,7 +192,7 @@ public class PersonController {
                     .doOnError(e -> {
                         log.error("ERROR AL TRANSFERIR ARCHIVO '{}': {}. La foto no se asignará.", originalFilename, e.getMessage(), e);
                     })
-                    .then() // Convierte a Mono<Void>
+                    .then()
                     .onErrorResume(e -> {
                         log.error("ERROR CATASTRÓFICO AL TRANSFERIR ARCHIVO '{}', continuando sin foto: {}", originalFilename, e.getMessage());
                         return Mono.empty();
@@ -203,6 +202,7 @@ public class PersonController {
             photoProcessingMono = Mono.empty();
         }
 
+
         return photoProcessingMono
                 .then(Mono.defer(() -> {
                     log.info("Dentro de Mono.defer. Nombre: {}, Foto actual en objeto person (después de photoProcessingMono): {}", person.getName(), person.getFacePhoto());
@@ -211,14 +211,11 @@ public class PersonController {
                         log.info("Llamando a personService.saveInitialEntry para: {}. Foto que se pasará al servicio: {}", person.getName(), person.getFacePhoto());
                         return personService.saveInitialEntry(person);
                     } else {
-                        // Lógica de actualización (asegúrate que esta lógica también usa person.getFacePhoto())
                         log.info("Llamando a lógica de actualización para: {}. Foto: {}", person.getName(), person.getFacePhoto());
                         return personService.findById(person.getId())
                                 .flatMap(existingPerson -> {
                                     existingPerson.setName(person.getName());
-                                    existingPerson.setDeathDate(person.getDeathDate());
-                                    existingPerson.setDeathDetails(person.getDeathDetails());
-                                    existingPerson.setFacePhoto(person.getFacePhoto()); // Usa la foto del objeto 'person'
+                                    existingPerson.setFacePhoto(person.getFacePhoto());
                                     existingPerson.setDeathNoteId(activeDeathNoteId);
                                     return personService.save(existingPerson);
                                 })
@@ -228,24 +225,19 @@ public class PersonController {
                 .flatMap(savedPerson -> {
                     log.info("Persona '{}' guardada/procesada (ID: {}). Foto: {}. Estado: {}, Viva: {}. Asociando con DN: {}",
                             savedPerson.getName(), savedPerson.getId(), savedPerson.getFacePhoto(), savedPerson.getStatus(), savedPerson.isAlive(), activeDeathNoteId);
-
-                    LocalDateTime deathTimestampForNote = savedPerson.getScheduledDeathTime() != null ? savedPerson.getScheduledDeathTime() : savedPerson.getDeathDate();
-                    if (person.getDeathDate() != null && (deathTimeStr != null && !deathTimeStr.isEmpty())) {
-                        deathTimestampForNote = person.getDeathDate(); // Si se especificó fecha y hora explícita, usar esa.
-                    }
-
                     return deathNoteService.writePersonInDeathNote(
                             activeDeathNoteId,
                             savedPerson.getId(),
                             savedPerson.getDeathDetails(),
-                            deathTimestampForNote,
+                            savedPerson.getScheduledDeathTime(),
                             savedPerson.getFacePhoto()
                     ).map(updatedDeathNote -> savedPerson);
                 })
                 .doOnSuccess(finalSavedPerson -> {
                     log.info("Proceso completado para persona {} ({}). Redirigiendo.", finalSavedPerson.getName(), finalSavedPerson.getId());
+                    sessionStatus.setComplete();
                 })
-                .thenReturn("redirect:/listNames?success=" + encodeURL("Persona '" + person.getName() + "' procesada exitosamente."))
+                .thenReturn("redirect:/listNames?success=" + encodeURL("Persona '" + person.getName() + "' anotada exitosamente."))
                 .onErrorResume(e -> {
                     log.error("ERROR FINAL en el flujo de savePerson para '{}': {}", person.getName(), e.getMessage(), e);
                     model.addAttribute("pageTitle", "Error al Anotar Persona");
@@ -260,8 +252,8 @@ public class PersonController {
     @GetMapping("/listNames")
     public Mono<String> listAllPersons(Model model, WebSession session) {
         String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
+        log.info("Cargando página de listado de todas las personas. DN Activa: {}", activeDeathNoteId);
 
-        log.info("Cargando página de listado de todas las personas.");
         Flux<Person> peopleFlux = personService.findAll().map(person -> {
             person.setName(person.getName().toUpperCase());
             return person;
@@ -275,7 +267,6 @@ public class PersonController {
     @GetMapping("/view/{id}")
     public Mono<String> viewPersonDetails(Model model, @PathVariable String id, WebSession session) {
         String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
-
         return personService.findById(id)
                 .doOnNext(person -> {
                     log.info("Viendo persona: {}", person.getName());
@@ -296,6 +287,9 @@ public class PersonController {
 
     @GetMapping("/delete/{id}")
     public Mono<String> deletePerson(@PathVariable String id, WebSession session) {
+        String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
+        log.info("Solicitud para eliminar persona con ID: {}. DN Activa: {}", id, activeDeathNoteId);
+
         return personService.findById(id)
                 .flatMap(person -> {
                     Mono<Void> deleteFileMono = Mono.empty();
@@ -312,7 +306,11 @@ public class PersonController {
                             }).subscribeOn(Schedulers.boundedElastic()).then();
                         }
                     }
-                    return deleteFileMono.then(personService.delete(person))
+                    Mono<Void> removeFromDeathNoteMono = Mono.empty();
+
+                    return deleteFileMono
+                            .then(removeFromDeathNoteMono)
+                            .then(personService.delete(person))
                             .thenReturn("redirect:/listNames?success=" + encodeURL("Persona '" + person.getName() + "' eliminada."));
                 })
                 .switchIfEmpty(Mono.defer(() -> {
@@ -322,18 +320,18 @@ public class PersonController {
                 .onErrorResume(e -> Mono.just("redirect:/listNames?error=" + encodeURL("Error al eliminar: " + e.getMessage())));
     }
 
-    @GetMapping("/deathnote/reject/{id}") // id aquí es el deathNoteId
+
+    @GetMapping("/deathnote/reject/{id}")
     public Mono<String> rejectOwnership(@PathVariable String id, WebSession session) {
         return deathNoteService.rejectOwnership(id)
                 .doOnSuccess(dn -> {
-                    // Si la DN rechazada era la activa, limpiar de sesión
                     String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
                     if (dn.getId().equals(activeDeathNoteId)) {
                         session.getAttributes().remove("ACTIVE_DEATH_NOTE_ID");
                         log.info("Death Note activa {} removida de sesión debido a rechazo de propiedad.", activeDeathNoteId);
                     }
                 })
-                .thenReturn("redirect:/?success=" + encodeURL("Propiedad de Death Note rechazada.")) // Redirigir a la selección
+                .thenReturn("redirect:/?success=" + encodeURL("Propiedad de Death Note rechazada."))
                 .onErrorResume(e -> Mono.just("redirect:/?error=" + encodeURL("Error al rechazar propiedad: " + e.getMessage())));
     }
 
@@ -341,7 +339,8 @@ public class PersonController {
         try {
             return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
         } catch (UnsupportedEncodingException e) {
-            return value; // Fallback
+            log.warn("Error al encodear URL para valor '{}': {}", value, e.getMessage());
+            return value;
         }
     }
 
@@ -355,11 +354,36 @@ public class PersonController {
         log.info("Mostrando formulario de detalles de muerte para persona con ID: {}", id);
         return personService.findById(id)
                 .flatMap(person -> {
+                    if ("PENDING_HEART_ATTACK".equals(person.getStatus()) && person.isAlive()) {
+                        log.info("Persona {} (ID: {}) en PENDING_HEART_ATTACK. Entrando a detalles, extendiendo tiempo a 400s.",
+                                person.getName(), person.getId());
+                        person.setScheduledDeathTime(person.getEntryTime().plusSeconds(400));
+                        person.setStatus("AWAITING_DETAILS");
+                        person.setDeathDetails("Esperando especificación de detalles (tiempo extendido a 400s).");
 
-                    model.addAttribute("person", person);
-                    model.addAttribute("pageTitle", "Especificar Muerte para " + person.getName());
-                    model.addAttribute("activeDeathNoteId", activeDeathNoteId);
-                    return Mono.just("details");
+                        return personService.save(person).map(updatedPerson -> {
+                            model.addAttribute("person", updatedPerson);
+                            model.addAttribute("pageTitle", "Especificar Muerte para " + updatedPerson.getName());
+                            model.addAttribute("activeDeathNoteId", activeDeathNoteId);
+                            if (updatedPerson.getScheduledDeathTime() != null) {
+                                model.addAttribute("explicitDeathDateStrSubmitted", updatedPerson.getScheduledDeathTime().toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE));
+                                model.addAttribute("explicitDeathTimeStrSubmitted", updatedPerson.getScheduledDeathTime().toLocalTime().format(DateTimeFormatter.ISO_LOCAL_TIME));
+                            }
+                            return "details";
+                        });
+                    } else {
+                        model.addAttribute("person", person);
+                        model.addAttribute("pageTitle", "Especificar Muerte para " + person.getName());
+                        model.addAttribute("activeDeathNoteId", activeDeathNoteId);
+                        if (person.getDeathDate() != null) {
+                            model.addAttribute("explicitDeathDateStrSubmitted", person.getDeathDate().toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE));
+                            model.addAttribute("explicitDeathTimeStrSubmitted", person.getDeathDate().toLocalTime().format(DateTimeFormatter.ISO_LOCAL_TIME));
+                        } else if (person.getScheduledDeathTime() != null) {
+                            model.addAttribute("explicitDeathDateStrSubmitted", person.getScheduledDeathTime().toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE));
+                            model.addAttribute("explicitDeathTimeStrSubmitted", person.getScheduledDeathTime().toLocalTime().format(DateTimeFormatter.ISO_LOCAL_TIME));
+                        }
+                        return Mono.just("details");
+                    }
                 })
                 .switchIfEmpty(Mono.defer(() -> {
                     log.warn("Persona no encontrada con ID {} al intentar mostrar detalles de muerte.", id);
@@ -367,93 +391,146 @@ public class PersonController {
                 }));
     }
 
+    // ¡MÉTODO CORREGIDO!
     @PostMapping("/persons/details/save")
-    public Mono<String> saveDeathDetails(@ModelAttribute("person") Person personFromForm,
+    public Mono<String> saveDeathDetails(Person personFromForm,
                                          BindingResult result,
                                          Model model, WebSession session, SessionStatus sessionStatus,
                                          ServerWebExchange exchange) {
 
         return exchange.getFormData().flatMap(formData -> {
-            String explicitDeathDateStr = formData.getFirst("explicitDeathDateStr");
-            String explicitDeathTimeStr = formData.getFirst("explicitDeathTimeStr");
+            final String personIdFromForm = formData.getFirst("id"); // Efectivamente final
+            final String explicitDeathDateStr = formData.getFirst("explicitDeathDateStr"); // Efectivamente final
+            final String explicitDeathTimeStr = formData.getFirst("explicitDeathTimeStr"); // Efectivamente final
+            final String deathDetailsFromForm = formData.getFirst("deathDetails"); // Efectivamente final
+            final String causeOfDeathFromForm = formData.getFirst("causeOfDeath"); // Efectivamente final
 
             log.info("--- INICIO DATOS FORMULARIO (ServerWebExchange) ---");
-            formData.forEach((key, values) -> {
-                log.info("FormData: Clave='{}', Valores='{}'", key, values);
-            });
-            log.info("Valor extraído para explicitDeathDateStr: '{}'", explicitDeathDateStr);
-            log.info("Valor extraído para explicitDeathTimeStr: '{}'", explicitDeathTimeStr);
+            formData.forEach((key, values) -> log.info("FormData: Clave='{}', Valores='{}'", key, values));
+            log.info("Valores extraídos: ID='{}', FechaStr='{}', HoraStr='{}', Detalles='{}', Causa='{}'",
+                    personIdFromForm, explicitDeathDateStr, explicitDeathTimeStr, deathDetailsFromForm, causeOfDeathFromForm);
             log.info("--- FIN DATOS FORMULARIO ---");
 
-            String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
-            log.info("Guardando detalles de muerte para Persona ID: {}", personFromForm.getId());
-            log.info("Datos recibidos (desde formData) - FechaStr: {}, HoraStr: {}, Detalles: {}, Causa: {}",
-                    explicitDeathDateStr, explicitDeathTimeStr, personFromForm.getDeathDetails(), personFromForm.getCauseOfDeath());
+            final String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID"); // Efectivamente final
 
-            LocalDateTime finalDeathDateTime = null;
+            if (personIdFromForm == null || personIdFromForm.trim().isEmpty()) {
+                log.error("ID de persona no recibido en el formulario de detalles.");
+                model.addAttribute("person", personFromForm); // personFromForm podría no tener ID aquí.
+                model.addAttribute("explicitDeathDateStrSubmitted", explicitDeathDateStr);
+                model.addAttribute("explicitDeathTimeStrSubmitted", explicitDeathTimeStr);
+                model.addAttribute("submittedDeathDetails", deathDetailsFromForm);
+                model.addAttribute("submittedCauseOfDeath", causeOfDeathFromForm);
+                model.addAttribute("pageTitle", "Error - Detalles de Muerte");
+                model.addAttribute("errorMessage", "Error crítico: ID de persona no encontrado.");
+                model.addAttribute("activeDeathNoteId", activeDeathNoteId);
+                return Mono.just("details");
+            }
+
+            // Parseo y validación de fecha/hora.
+            // Esta variable será asignada una vez y luego usada.
+            final LocalDateTime finalParsedDeathDateTime;
 
             if (explicitDeathDateStr == null || explicitDeathDateStr.trim().isEmpty()) {
                 result.rejectValue("deathDate", "NotEmpty", "La fecha de muerte es obligatoria.");
             }
             if (explicitDeathTimeStr == null || explicitDeathTimeStr.trim().isEmpty()) {
-                result.rejectValue("deathDate", "NotEmpty.time", "La hora de muerte es obligatoria.");
+                result.reject("deathTime", "La hora de muerte es obligatoria.");
             }
 
             if (result.hasErrors()) {
-                log.warn("Errores de validación al guardar detalles de muerte para ID: {}. Errores: {}", personFromForm.getId(), result.getAllErrors());
-                model.addAttribute("person", personFromForm);
-                model.addAttribute("explicitDeathDateStrSubmitted", explicitDeathDateStr);
-                model.addAttribute("explicitDeathTimeStrSubmitted", explicitDeathTimeStr);
-                model.addAttribute("pageTitle", "Error - Detalles de Muerte para " + (personFromForm.getName() != null ? personFromForm.getName() : "ID: " + personFromForm.getId()));
-                model.addAttribute("errorMessage", "Por favor corrige los errores e inténtalo de nuevo.");
-                return Mono.just("details");
+                // Si hay errores de campos vacíos, necesitamos cargar la persona para el nombre, etc.
+                return personService.findById(personIdFromForm)
+                        .defaultIfEmpty(personFromForm) // Fallback
+                        .flatMap(personForErrorContext -> {
+                            log.warn("Errores de validación (campos vacíos) al guardar detalles para ID: {}. Errores: {}", personIdFromForm, result.getAllErrors());
+                            model.addAttribute("person", personForErrorContext);
+                            model.addAttribute("explicitDeathDateStrSubmitted", explicitDeathDateStr);
+                            model.addAttribute("explicitDeathTimeStrSubmitted", explicitDeathTimeStr);
+                            model.addAttribute("submittedDeathDetails", deathDetailsFromForm);
+                            model.addAttribute("submittedCauseOfDeath", causeOfDeathFromForm);
+                            model.addAttribute("pageTitle", "Error - Detalles de Muerte para " + (personForErrorContext.getName() != null ? personForErrorContext.getName() : "ID: "+personIdFromForm));
+                            model.addAttribute("errorMessage", "Por favor corrige los errores e inténtalo de nuevo.");
+                            model.addAttribute("activeDeathNoteId", activeDeathNoteId);
+                            return Mono.just("details");
+                        });
             }
 
             try {
                 LocalDate datePart = LocalDate.parse(explicitDeathDateStr, DateTimeFormatter.ISO_LOCAL_DATE);
                 LocalTime timePart = LocalTime.parse(explicitDeathTimeStr, DateTimeFormatter.ISO_LOCAL_TIME);
-                finalDeathDateTime = LocalDateTime.of(datePart, timePart);
-                log.info("Fecha y hora de muerte combinadas: {}", finalDeathDateTime);
+                finalParsedDeathDateTime = LocalDateTime.of(datePart, timePart); // Asignación
+                log.info("Fecha y hora de muerte combinadas: {}", finalParsedDeathDateTime);
             } catch (DateTimeParseException e) {
                 log.warn("Error al parsear fecha/hora: Date='{}', Time='{}' - Error: {}", explicitDeathDateStr, explicitDeathTimeStr, e.getMessage());
-                result.rejectValue("deathDate", "invalid.datetime", "Formato de fecha u hora inválido. Use yyyy-MM-dd y HH:mm.");
-            } catch (NullPointerException npe){
-                log.warn("NPE al parsear fecha/hora, uno de los strings de fecha/hora es null (esto no debería pasar si la validación anterior funciona).");
-                if (!result.hasFieldErrors("deathDate")) {
-                    result.rejectValue("deathDate", "invalid.datetime", "Fecha y hora deben ser proporcionadas y válidas.");
-                }
+                result.reject("invalid.datetime", "Formato de fecha u hora inválido. Use yyyy-MM-dd y HH:mm.");
+                // Necesitamos cargar la persona para el contexto del error.
+                return personService.findById(personIdFromForm)
+                        .defaultIfEmpty(personFromForm) // Fallback
+                        .flatMap(personForErrorContext -> {
+                            model.addAttribute("person", personForErrorContext);
+                            model.addAttribute("explicitDeathDateStrSubmitted", explicitDeathDateStr);
+                            model.addAttribute("explicitDeathTimeStrSubmitted", explicitDeathTimeStr);
+                            model.addAttribute("submittedDeathDetails", deathDetailsFromForm);
+                            model.addAttribute("submittedCauseOfDeath", causeOfDeathFromForm);
+                            model.addAttribute("pageTitle", "Error - Detalles de Muerte para " + (personForErrorContext.getName() != null ? personForErrorContext.getName() : "ID: "+personIdFromForm));
+                            model.addAttribute("errorMessage", "Formato de fecha u hora inválido. Por favor corrige los errores.");
+                            model.addAttribute("activeDeathNoteId", activeDeathNoteId);
+                            return Mono.just("details");
+                        });
             }
+            // En este punto, finalParsedDeathDateTime está asignada y es efectivamente final si no hubo excepciones/retornos tempranos.
 
-            if (result.hasErrors()) {
-                log.warn("Errores después del parseo al guardar detalles de muerte para ID: {}. Errores: {}", personFromForm.getId(), result.getAllErrors());
-                model.addAttribute("person", personFromForm);
-                model.addAttribute("explicitDeathDateStrSubmitted", explicitDeathDateStr);
-                model.addAttribute("explicitDeathTimeStrSubmitted", explicitDeathTimeStr);
-                model.addAttribute("pageTitle", "Error - Detalles de Muerte para " + (personFromForm.getName() != null ? personFromForm.getName() : "ID: " + personFromForm.getId()));
-                model.addAttribute("errorMessage", "Por favor corrige los errores e inténtalo de nuevo.");
-                return Mono.just("details");
-            }
+            return personService.findById(personIdFromForm)
+                    .switchIfEmpty(Mono.error(new RuntimeException("Persona con ID " + personIdFromForm + " no encontrada para guardar detalles.")))
+                    .flatMap(personToUpdate -> {
+                        // Doble chequeo de errores, por si acaso (aunque los principales ya retornaron).
+                        if (result.hasErrors()) {
+                            log.warn("Errores de validación (posiblemente de parseo) al guardar detalles para ID: {}. Errores: {}", personIdFromForm, result.getAllErrors());
+                            model.addAttribute("person", personToUpdate);
+                            model.addAttribute("explicitDeathDateStrSubmitted", explicitDeathDateStr);
+                            model.addAttribute("explicitDeathTimeStrSubmitted", explicitDeathTimeStr);
+                            model.addAttribute("submittedDeathDetails", deathDetailsFromForm);
+                            model.addAttribute("submittedCauseOfDeath", causeOfDeathFromForm);
+                            model.addAttribute("pageTitle", "Error - Detalles de Muerte para " + personToUpdate.getName());
+                            model.addAttribute("errorMessage", "Por favor corrige los errores e inténtalo de nuevo.");
+                            model.addAttribute("activeDeathNoteId", activeDeathNoteId);
+                            return Mono.just("details");
+                        }
 
-            // Si todo OK, proceder a guardar
-            return personService.specifyDeath(personFromForm.getId(), finalDeathDateTime, personFromForm.getDeathDetails(), personFromForm.getCauseOfDeath())
-                    .doOnSuccess(updatedPerson -> {
-                        log.info("Detalles de muerte actualizados para {} (ID: {}).", updatedPerson.getName(), updatedPerson.getId());
+                        log.info("Procediendo a guardar detalles para Persona ID: {}, Nombre: {}", personIdFromForm, personToUpdate.getName());
+                        // Usamos las variables (efectivamente) finales capturadas por esta lambda
+                        return personService.specifyDeath(personIdFromForm, finalParsedDeathDateTime, deathDetailsFromForm, causeOfDeathFromForm)
+                                .doOnSuccess(updatedPerson -> {
+                                    log.info("Detalles de muerte actualizados para {} (ID: {}).", updatedPerson.getName(), updatedPerson.getId());
+                                    if (activeDeathNoteId != null) {
+                                        deathNoteService.writePersonInDeathNote(
+                                                activeDeathNoteId,
+                                                updatedPerson.getId(),
+                                                updatedPerson.getDeathDetails(),
+                                                updatedPerson.getScheduledDeathTime() != null ? updatedPerson.getScheduledDeathTime() : updatedPerson.getDeathDate(),
+                                                updatedPerson.getFacePhoto()
+                                        ).subscribe(
+                                                dn -> log.info("DeathNote actualizada para persona {}", updatedPerson.getName()),
+                                                err -> log.error("Error actualizando DeathNote para persona {}: {}", updatedPerson.getName(), err.getMessage())
+                                        );
+                                    }
+                                    sessionStatus.setComplete();
+                                })
+                                .thenReturn("redirect:/listNames?success=" + encodeURL("Detalles de muerte actualizados para '" + personToUpdate.getName() + "'."));
                     })
-                    .thenReturn("redirect:/listNames?success=" + encodeURL("Detalles de muerte actualizados para '" + personFromForm.getName() + "'."))
                     .onErrorResume(e -> {
-                        log.error("Error al actualizar detalles de muerte para ID {}: {}", personFromForm.getId(), e.getMessage(), e);
-                        return personService.findById(personFromForm.getId())
-                                .defaultIfEmpty(personFromForm)
+                        log.error("Error en el flujo de saveDeathDetails para ID {}: {}", personIdFromForm, e.getMessage(), e);
+                        return personService.findById(personIdFromForm) // Recargar para el nombre etc.
+                                .defaultIfEmpty(personFromForm) // Fallback si no se encuentra
                                 .flatMap(originalPerson -> {
-                                    model.addAttribute("person", originalPerson);
+                                    model.addAttribute("person", originalPerson); // La persona original o del formulario
                                     model.addAttribute("explicitDeathDateStrSubmitted", explicitDeathDateStr);
                                     model.addAttribute("explicitDeathTimeStrSubmitted", explicitDeathTimeStr);
-                                    if (originalPerson != personFromForm) {
-                                        model.addAttribute("submittedDeathDetails", personFromForm.getDeathDetails());
-                                        model.addAttribute("submittedCauseOfDeath", personFromForm.getCauseOfDeath());
-                                    }
-                                    model.addAttribute("pageTitle", "Error - Detalles de Muerte para " + originalPerson.getName());
+                                    model.addAttribute("submittedDeathDetails", deathDetailsFromForm);
+                                    model.addAttribute("submittedCauseOfDeath", causeOfDeathFromForm);
+                                    model.addAttribute("pageTitle", "Error - Detalles de Muerte para " + (originalPerson.getName() != null ? originalPerson.getName() : "ID: " + personIdFromForm));
                                     model.addAttribute("errorMessage", "Error al guardar los detalles: " + e.getMessage());
+                                    model.addAttribute("activeDeathNoteId", activeDeathNoteId);
                                     return Mono.just("details");
                                 });
                     });
