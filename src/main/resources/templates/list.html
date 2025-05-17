@@ -1,114 +1,80 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title th:text="${pageTitle != null ? pageTitle : 'Listado de Personas'}">
-      Listado de Personas
-    </title>
+    <title th:text="${pageTitle != null ? pageTitle : 'Listado de Personas'}">Listado de Personas</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Roboto+Condensed:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet" />
+
     <link rel="stylesheet" th:href="@{/style.css}" />
-  </head>
-  <body>
+</head>
+<body>
     <header class="site-header">
-      <div class="logo-container">
-        <img th:src="@{/assets/deathNoteWhite.png}" alt="Logo Death Note" />
-      </div>
-      <nav class="main-nav">
-        <ul>
-          <li><a th:href="@{/}">Seleccionar Death Note</a></li>
-          <li><a th:href="@{/rules}">Reglas</a></li>
-          <li><a th:href="@{/anotarNombres}">Anotar Nombres</a></li>
-          <li><a th:href="@{/listNames}">Listado de Nombres</a></li>
-        </ul>
-      </nav>
+        <div class="logo-container">
+            <img th:src="@{/assets/deathNoteWhite.png}" alt="Logo Death Note" />
+        </div>
+        <nav class="main-nav">
+            <ul>
+                <li><a th:href="@{/}">Seleccionar Death Note</a></li>
+                <li><a th:href="@{/rules}">Reglas</a></li>
+                <li><a th:href="@{/anotarNombres}">Anotar Nombres</a></li>
+                <li><a th:href="@{/listNames}">Listado de Nombres</a></li> </ul>
+        </nav>
     </header>
 
-    <main class="main-content">
-      <section>
-        <h1
-          th:text="${pageTitle != null ? pageTitle : 'Listado de Personas Anotadas'}"
-        >
-          Listado de Personas Anotadas
-        </h1>
+    <div th:if="${param.success}" class="message success-message" th:text="${param.success}"></div>
+    <div th:if="${param.error}" class="message error-message" th:text="${param.error}"></div>
 
-        <div
-          th:if="${param.success}"
-          class="message success-message"
-          th:text="${param.success}"
-        ></div>
-        <div
-          th:if="${param.error}"
-          class="message error-message"
-          th:text="${param.error}"
-        ></div>
+    <main class="main-content listado-nombres-page"> <section class="table-section-container"> <h1 th:text="${pageTitle != null ? pageTitle : 'Listado de Personas Anotadas'}">
+                Listado de Personas Anotadas
+            </h1>
 
-        <table class="people-table">
-          <thead>
-            <tr>
-              <th>ID (Corto)</th>
-              <th>Nombre</th>
-              <th>¿Viva?</th>
-              <th>Fecha/Hora de Muerte</th>
-              <th>Detalles de Muerte</th>
-              <th>Foto</th>
-              <th>Borrar</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr th:each="p : ${people}">
-              <td>
-                <a
-                  th:href="@{'/view/' + ${p.id}}"
-                  th:text="${#strings.abbreviate(p.id, 10)}"
-                ></a>
-              </td>
-              <td th:text="${p.name}"></td>
-              <td th:text="${p.alive} ? 'Sí' : 'No'"></td>
-              <td
-                th:text="${p.deathDate != null ? #temporals.format(p.deathDate, 'dd/MM/yyyy HH:mm:ss') : 'N/A'}"
-              ></td>
-              <td th:text="${p.deathDetails}"></td>
-              <td>
-                <img
-                  th:if="${p.facePhoto != null && !p.facePhoto.isEmpty()}"
-                  th:src="@{/uploads/{filename}(filename=${p.facePhoto})}"
-                  alt="Foto"
-                  width="50"
-                />
-                <span
-                  th:unless="${p.facePhoto != null && !p.facePhoto.isEmpty()}"
-                  >Sin foto</span
-                >
-              </td>
-              <td>
-                <a
-                  th:href="@{'/delete/' + ${p.id}}"
-                  onclick="return confirm('¿Estás seguro de que quieres borrar a esta persona?');"
-                  class="btn btn-danger btn-sm"
-                  >Borrar</a
-                >
-              </td>
-              <td>
-                <a
-                  th:if="${p.isAlive() or (p.status != null and p.status.startsWith('PENDING'))}"
-                  th:href="@{'/persons/details/' + ${p.id}}"
-                  class="btn btn-info btn-sm"
-                  >Editar Detalles de Muerte</a
-                >
-                <span
-                  th:unless="${p.isAlive() or (p.status != null and p.status.startsWith('PENDING'))}"
-                  >-</span
-                >
-                >
-              </td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(people)}">
-              <td colspan="8">No hay personas escritas aún.</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
+            <div class="table-responsive-wrapper"> <table class="people-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>¿Viva?</th>
+                            <th>Fecha/Hora de Muerte</th>
+                            <th>Detalles de Muerte</th>
+                            <th>Foto</th>
+                            <th colspan="2">Acciones</th> </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="p : ${people}">
+                            <td>
+                                <a th:href="@{'/view/' + ${p.id}}" th:text="${#strings.abbreviate(p.id, 10)}" class="table-link id-link"></a>
+                            </td>
+                            <td th:text="${p.name}"></td>
+                            <td th:text="${p.alive} ? 'Sí' : 'No'" th:classappend="${p.alive} ? 'status-alive' : 'status-deceased'"></td>
+                            <td th:text="${p.deathDate != null ? #temporals.format(p.deathDate, 'dd/MM/yyyy HH:mm') : 'N/A'}"></td> <td class="details-cell" th:text="${p.deathDetails != null ? #strings.abbreviate(p.deathDetails, 50) : '-'}"></td> <td>
+                                <img th:if="${p.facePhoto != null && !p.facePhoto.isEmpty()}"
+                                     th:src="@{/uploads/{filename}(filename=${p.facePhoto})}"
+                                     alt="Foto" class="table-photo" />
+                                <span th:unless="${p.facePhoto != null && !p.facePhoto.isEmpty()}">Sin foto</span>
+                            </td>
+                            <td class="action-cell">
+                                <a th:href="@{'/delete/' + ${p.id}}"
+                                   onclick="return confirm('¿Estás seguro de que quieres borrar a esta persona?');"
+                                   class="action-btn delete-btn">Borrar</a>
+                            </td>
+                            <td class="action-cell">
+                                <a th:if="${p.isAlive() or (p.status != null and p.status.startsWith('PENDING'))}"
+                                   th:href="@{'/persons/details/' + ${p.id}}"
+                                   class="action-btn edit-btn">Editar</a>
+                                <span th:unless="${p.isAlive() or (p.status != null and p.status.startsWith('PENDING'))}">-</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(people)}">
+                            <td colspan="8" class="no-data-message">No hay personas escritas aún.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </main>
-  </body>
+</body>
 </html>

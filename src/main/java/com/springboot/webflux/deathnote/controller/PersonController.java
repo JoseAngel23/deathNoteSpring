@@ -39,7 +39,7 @@ import java.time.format.DateTimeParseException;
 import java.util.UUID;
 
 @Controller
-public class PersonController { // Considera renombrar a AppController o dividir en más controladores si crece mucho
+public class PersonController {
 
     private final PersonService personService;
     private final DeathNoteService deathNoteService;
@@ -52,7 +52,6 @@ public class PersonController { // Considera renombrar a AppController o dividir
 
     public static final Logger log = LoggerFactory.getLogger(PersonController.class);
 
-    // Inyección por constructor (buena práctica)
     public PersonController(PersonService personService, DeathNoteService deathNoteService) {
         this.personService = personService;
         this.deathNoteService = deathNoteService;
@@ -90,7 +89,6 @@ public class PersonController { // Considera renombrar a AppController o dividir
                 });
     }
 
-    // --- 3. MOSTRAR PÁGINA DE REGLAS ---
     @GetMapping("/rules")
     public Mono<String> showRulesPage(Model model, WebSession session) {
         String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
@@ -100,11 +98,10 @@ public class PersonController { // Considera renombrar a AppController o dividir
         }
         log.info("Mostrando página de reglas para Death Note ID: {}", activeDeathNoteId);
         model.addAttribute("pageTitle", "Reglas de la Death Note");
-        model.addAttribute("activeDeathNoteId", activeDeathNoteId); // Útil si el botón "continuar" en rules.html necesita este ID
-        return Mono.just("rules"); // HTML de las reglas
+        model.addAttribute("activeDeathNoteId", activeDeathNoteId);
+        return Mono.just("rules");
     }
 
-    // --- 4. PÁGINA PARA ANOTAR NOMBRES (FORMULARIO) ---
     @GetMapping("/anotarNombres")
     public Mono<String> showAnotarNombresPage(Model model, WebSession session) {
         String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
@@ -121,11 +118,11 @@ public class PersonController { // Considera renombrar a AppController o dividir
     }
 
     @PostMapping("/api/test-upload")
-    @ResponseBody // Para devolver una respuesta de texto simple
+    @ResponseBody
     public Mono<String> handleFileUploadTest(@RequestParam(name = "file", required = false) FilePart filePart) {
         if (filePart != null) {
             log.info("[TEST UPLOAD] Archivo recibido: {}, tamaño: {}", filePart.filename(), filePart.headers().getContentLength());
-            // No intentes guardarlo, solo confirma recepción
+
             return Mono.just("Archivo recibido: " + filePart.filename());
         } else {
             log.info("[TEST UPLOAD] FilePart es NULO.");
@@ -139,7 +136,7 @@ public class PersonController { // Considera renombrar a AppController o dividir
                                    @RequestParam(name = "deathTime", required = false) String deathTimeStr,
                                    WebSession session, SessionStatus sessionStatus) {
 
-        final Person person = personInput; // Usar esta referencia
+        final Person person = personInput;
 
         String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
         if (activeDeathNoteId == null) {
@@ -150,7 +147,6 @@ public class PersonController { // Considera renombrar a AppController o dividir
 
         log.info("Inicio de savePerson para: {}. DN Activa: {}", person.getName(), activeDeathNoteId);
 
-        // Loguear estado del FilePart 'file' recibido
         if (file != null) {
             log.info("FilePart 'file' NO es nulo.");
             if (file.filename() != null && !file.filename().isEmpty()) {
@@ -162,8 +158,6 @@ public class PersonController { // Considera renombrar a AppController o dividir
             log.info("FilePart 'file' ES nulo.");
         }
 
-        // ... (tu lógica para combinar deathDate y deathTimeStr, si la tienes)
-        // ... (tu bloque if (result.hasErrors()) { ... } )
         if (result.hasErrors()) {
             log.warn("Errores de validación al guardar persona: {}", person.getName());
             result.getAllErrors().forEach(err -> log.warn("Error de validación: {}", err.toString()));
@@ -173,10 +167,8 @@ public class PersonController { // Considera renombrar a AppController o dividir
             return Mono.just("form");
         }
 
-
         Mono<Void> photoProcessingMono;
 
-        // Condición para procesar el archivo
         boolean processFile = (file != null && file.filename() != null && !file.filename().isEmpty());
         log.info("¿Se procesará el archivo? : {}", processFile);
 
@@ -196,20 +188,19 @@ public class PersonController { // Considera renombrar a AppController o dividir
             photoProcessingMono = file.transferTo(targetPath)
                     .doOnSuccess(voidResult -> {
                         log.info("ARCHIVO TRANSFERIDO EXITOSAMENTE: '{}'. Asignando nombre a person.facePhoto.", uniqueFilename);
-                        person.setFacePhoto(uniqueFilename); // Actualiza el objeto person
+                        person.setFacePhoto(uniqueFilename);
                     })
                     .doOnError(e -> {
                         log.error("ERROR AL TRANSFERIR ARCHIVO '{}': {}. La foto no se asignará.", originalFilename, e.getMessage(), e);
-                        // No se asigna person.facePhoto si hay error, se continuará como si no hubiera foto.
                     })
                     .then() // Convierte a Mono<Void>
-                    .onErrorResume(e -> { // Si transferTo falla catastróficamente antes de doOnError
+                    .onErrorResume(e -> {
                         log.error("ERROR CATASTRÓFICO AL TRANSFERIR ARCHIVO '{}', continuando sin foto: {}", originalFilename, e.getMessage());
-                        return Mono.empty(); // Continuar como si no hubiera foto
+                        return Mono.empty();
                     });
         } else {
             log.info("No se proporcionó archivo de foto válido. person.facePhoto actual (antes de saveInitialEntry): {}", person.getFacePhoto());
-            photoProcessingMono = Mono.empty(); // No hay procesamiento de foto nuevo.
+            photoProcessingMono = Mono.empty();
         }
 
         return photoProcessingMono
@@ -266,13 +257,9 @@ public class PersonController { // Considera renombrar a AppController o dividir
                 });
     }
 
-    // --- 6. LISTAR TODAS LAS PERSONAS (O FILTRADAS POR DN ACTIVA) ---
     @GetMapping("/listNames")
     public Mono<String> listAllPersons(Model model, WebSession session) {
         String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
-        // Decide si quieres mostrar todas las personas o solo las de la DN activa
-        // Aquí muestro todas, pero podrías filtrarlas con:
-        // Flux<Person> peopleFlux = personService.findAllByDeathNoteId(activeDeathNoteId);
 
         log.info("Cargando página de listado de todas las personas.");
         Flux<Person> peopleFlux = personService.findAll().map(person -> {
@@ -281,11 +268,10 @@ public class PersonController { // Considera renombrar a AppController o dividir
         });
         model.addAttribute("people", peopleFlux);
         model.addAttribute("pageTitle", "Listado de Personas Anotadas");
-        model.addAttribute("activeDeathNoteId", activeDeathNoteId); // Por si la vista lo necesita
-        return Mono.just("list"); // HTML para listar personas
+        model.addAttribute("activeDeathNoteId", activeDeathNoteId);
+        return Mono.just("list");
     }
 
-    // --- 7. VER DETALLE DE UNA PERSONA ---
     @GetMapping("/view/{id}")
     public Mono<String> viewPersonDetails(Model model, @PathVariable String id, WebSession session) {
         String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
@@ -297,8 +283,8 @@ public class PersonController { // Considera renombrar a AppController o dividir
                     model.addAttribute("pageTitle", "Detalle Persona: " + person.getName());
                     model.addAttribute("activeDeathNoteId", activeDeathNoteId);
                 })
-                .map(person -> "view") // Cambiado a map para retornar el nombre de la vista
-                .switchIfEmpty(Mono.defer(() -> { // Mantenemos defer para la lógica condicional del log
+                .map(person -> "view")
+                .switchIfEmpty(Mono.defer(() -> {
                     log.warn("Intento de ver persona no encontrada con ID: {}", id);
                     return Mono.just("redirect:/listNames?error=" + encodeURL("Persona no encontrada con ID: " + id));
                 }))
@@ -308,7 +294,6 @@ public class PersonController { // Considera renombrar a AppController o dividir
                 });
     }
 
-    // --- OTROS MÉTODOS (delete, rejectOwnership, viewPhoto) ---
     @GetMapping("/delete/{id}")
     public Mono<String> deletePerson(@PathVariable String id, WebSession session) {
         return personService.findById(id)
@@ -330,8 +315,8 @@ public class PersonController { // Considera renombrar a AppController o dividir
                     return deleteFileMono.then(personService.delete(person))
                             .thenReturn("redirect:/listNames?success=" + encodeURL("Persona '" + person.getName() + "' eliminada."));
                 })
-                .switchIfEmpty(Mono.defer(() -> { // Mantenemos defer para la lógica condicional del log o si la creación del Mono es costosa
-                    log.warn("Intento de eliminar persona no encontrada con ID: {}", id); // Añadido log
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.warn("Intento de eliminar persona no encontrada con ID: {}", id);
                     return Mono.just("redirect:/listNames?error=" + encodeURL("Persona no encontrada con ID: " + id));
                 }))
                 .onErrorResume(e -> Mono.just("redirect:/listNames?error=" + encodeURL("Error al eliminar: " + e.getMessage())));
@@ -352,7 +337,6 @@ public class PersonController { // Considera renombrar a AppController o dividir
                 .onErrorResume(e -> Mono.just("redirect:/?error=" + encodeURL("Error al rechazar propiedad: " + e.getMessage())));
     }
 
-    // Helper para codificar URLs (opcional pero recomendado para mensajes)
     private String encodeURL(String value) {
         try {
             return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
@@ -383,15 +367,11 @@ public class PersonController { // Considera renombrar a AppController o dividir
                 }));
     }
 
-    // En PersonController.java
     @PostMapping("/persons/details/save")
     public Mono<String> saveDeathDetails(@ModelAttribute("person") Person personFromForm,
                                          BindingResult result,
-                                         // Comenta temporalmente los @RequestParam para evitar que interfieran con el diagnóstico
-                                         // @RequestParam(name = "explicitDeathDateStr", required = false) String explicitDeathDateStrParam,
-                                         // @RequestParam(name = "explicitDeathTimeStr", required = false) String explicitDeathTimeStrParam,
                                          Model model, WebSession session, SessionStatus sessionStatus,
-                                         ServerWebExchange exchange) { // Añade ServerWebExchange
+                                         ServerWebExchange exchange) {
 
         return exchange.getFormData().flatMap(formData -> {
             String explicitDeathDateStr = formData.getFirst("explicitDeathDateStr");
@@ -405,10 +385,6 @@ public class PersonController { // Considera renombrar a AppController o dividir
             log.info("Valor extraído para explicitDeathTimeStr: '{}'", explicitDeathTimeStr);
             log.info("--- FIN DATOS FORMULARIO ---");
 
-            // ... resto de tu lógica usando explicitDeathDateStr y explicitDeathTimeStr ...
-            // (La lógica de validación, parseo, etc.)
-
-            // Ejemplo de cómo seguiría:
             String activeDeathNoteId = session.getAttribute("ACTIVE_DEATH_NOTE_ID");
             log.info("Guardando detalles de muerte para Persona ID: {}", personFromForm.getId());
             log.info("Datos recibidos (desde formData) - FechaStr: {}, HoraStr: {}, Detalles: {}, Causa: {}",
@@ -422,7 +398,6 @@ public class PersonController { // Considera renombrar a AppController o dividir
             if (explicitDeathTimeStr == null || explicitDeathTimeStr.trim().isEmpty()) {
                 result.rejectValue("deathDate", "NotEmpty.time", "La hora de muerte es obligatoria.");
             }
-            // ... (resto del método como lo tienes) ...
 
             if (result.hasErrors()) {
                 log.warn("Errores de validación al guardar detalles de muerte para ID: {}. Errores: {}", personFromForm.getId(), result.getAllErrors());
@@ -434,7 +409,6 @@ public class PersonController { // Considera renombrar a AppController o dividir
                 return Mono.just("details");
             }
 
-            // Parseo
             try {
                 LocalDate datePart = LocalDate.parse(explicitDeathDateStr, DateTimeFormatter.ISO_LOCAL_DATE);
                 LocalTime timePart = LocalTime.parse(explicitDeathTimeStr, DateTimeFormatter.ISO_LOCAL_TIME);
@@ -443,14 +417,13 @@ public class PersonController { // Considera renombrar a AppController o dividir
             } catch (DateTimeParseException e) {
                 log.warn("Error al parsear fecha/hora: Date='{}', Time='{}' - Error: {}", explicitDeathDateStr, explicitDeathTimeStr, e.getMessage());
                 result.rejectValue("deathDate", "invalid.datetime", "Formato de fecha u hora inválido. Use yyyy-MM-dd y HH:mm.");
-            } catch (NullPointerException npe){ // Si explicitDeathDateStr o explicitDeathTimeStr son null después de la validación
+            } catch (NullPointerException npe){
                 log.warn("NPE al parsear fecha/hora, uno de los strings de fecha/hora es null (esto no debería pasar si la validación anterior funciona).");
-                if (!result.hasFieldErrors("deathDate")) { // Solo añadir si no hay otro error más específico
+                if (!result.hasFieldErrors("deathDate")) {
                     result.rejectValue("deathDate", "invalid.datetime", "Fecha y hora deben ser proporcionadas y válidas.");
                 }
             }
 
-            // Si después del parseo hubo errores, volver al formulario
             if (result.hasErrors()) {
                 log.warn("Errores después del parseo al guardar detalles de muerte para ID: {}. Errores: {}", personFromForm.getId(), result.getAllErrors());
                 model.addAttribute("person", personFromForm);
